@@ -293,15 +293,15 @@ input[type=number]{-moz-appearance:textfield}
   <div class="sb-section">Database</div>
   <div class="sb-item" onclick="nav('clients')" id="nav-clients">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-    Clients <span class="sb-pill" id="pill-c">5</span>
+    Clients
   </div>
   <div class="sb-item" onclick="nav('suppliers')" id="nav-suppliers">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-    Suppliers <span class="sb-pill" id="pill-s">4</span>
+    Suppliers
   </div>
   <div class="sb-item" onclick="nav('products')" id="nav-products">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-    Products <span class="sb-pill" id="pill-p">6</span>
+    Products
   </div>
   <div class="sb-section">Sales</div>
   <div class="sb-item" onclick="nav('quotation')" id="nav-quotation">
@@ -310,7 +310,7 @@ input[type=number]{-moz-appearance:textfield}
   </div>
   <div class="sb-item" onclick="nav('client-po')" id="nav-client-po">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
-    Sales Order <span class="sb-pill">3</span>
+    Sales Order
   </div>
   <div class="sb-item" onclick="nav('invoice')" id="nav-invoice">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -327,11 +327,11 @@ input[type=number]{-moz-appearance:textfield}
   </div>
   <div class="sb-item" onclick="nav('sup-invoice')" id="nav-sup-invoice">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    Purchase Invoices <span class="sb-pill" id="pill-sinv">1</span>
+    Purchase Invoices
   </div>
   <div class="sb-item" onclick="nav('sup-do')" id="nav-sup-do">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-    Goods Received <span class="sb-pill" id="pill-sdo">1</span>
+    Goods Received
   </div>
   <div class="sb-section">Reports</div>
   <div class="sb-item" onclick="openReportModal()">
@@ -384,8 +384,8 @@ let PROD_PICKER_IDX = -1; // which line is showing product picker
    Fill in your credentials from:
    Supabase Dashboard → Settings → API
 ═══════════════════════════════════════════════ */
-const SUPABASE_URL = 'https://jedszqggdssdydplhyfq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3kC1Gf3_DDRd8loDmnsl0g_rUBtS9DS';
+const SUPABASE_URL = 'https://elgmpvzxpwtujmvdcsog.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'sb_publishable_12FOtb3DO8oM_pMBuE5eag_E6EMJ91x';
 
 let _sb = null;
 function getSB(){
@@ -649,11 +649,10 @@ function getYYMM() {
   return yy + mm;                                         // "2608"
 }
 // Build the full prefix for a given doc type, e.g. "Q-2608", "MS-IV-2608"
-// Only procurement PO keeps its base prefix as-is (no YYMM)
+// All document types use YYMM prefix (e.g. PO-2608-0001)
 function fullPrefix(pfxKey) {
   const base = CO.prefix[pfxKey] || 'DOC';
-  const noYYMM = ['po'];
-  return noYYMM.includes(pfxKey) ? base : `${base}-${getYYMM()}`;
+  return `${base}-${getYYMM()}`;
 }
 // Reset monthly counters if the month has changed since last save
 function checkMonthRollover() {
@@ -1398,6 +1397,18 @@ function renderDocForm(){
   </div>
 
   <div class="panel"><h4>Document Details</h4>
+    <!-- Document No. display -->
+    <div style="background:var(--accent-bg);border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Document No.</div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy);font-family:'SF Mono',Monaco,Consolas,monospace;letter-spacing:.5px">
+          ${EDIT_ID==='new' ? (()=>{ const _pk={quotation:'quotation',invoice:'invoice',po:'po',do:'do','client-po':'clientPO'}[DOC_TYPE]||DOC_TYPE; return `${fullPrefix(_pk)}-${String((CO.counter[_pk]||0)+1).padStart(4,'0')}`; })() : EDIT_ID}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);text-align:right">
+        ${EDIT_ID==='new'?'<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">NEW</span>':'<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">EDITING</span>'}
+      </div>
+    </div>
     <div class="frow c3">
       <div class="fgrp"><label>Date</label><input type="date" id="f-date" value="${FORM.date||today()}" oninput="FORM.date=this.value"/></div>
       <div class="fgrp"><label>Their ref / PO no.</label><input id="f-ref" value="${FORM.ref||''}" oninput="FORM.ref=this.value"/></div>
@@ -1783,7 +1794,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
     return `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
       <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
-      <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+      <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
     </div>
     <div class="preview-doc" id="print-area" style="padding:0;max-width:740px;font-family:Arial,sans-serif;font-size:12px">
 
@@ -1910,7 +1921,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
     return `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
       <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
-      <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+      <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
     </div>
     <div class="preview-doc" id="print-area" style="padding:0;max-width:740px;font-family:Arial,sans-serif;font-size:12px">
 
@@ -2031,7 +2042,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
     return `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
       <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
-      <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+      <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
     </div>
     <div class="preview-doc" id="print-area" style="padding:0;max-width:740px;font-family:Arial,sans-serif;font-size:12px">
 
@@ -2127,7 +2138,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
     return `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
       <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
-      <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+      <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
     </div>
     <div class="preview-doc" id="print-area" style="padding:0;max-width:740px;font-family:Arial,sans-serif;font-size:12px">
 
@@ -2250,7 +2261,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
   return `
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
     <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
-    <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+    <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
   </div>
   <div class="preview-doc" id="print-area" style="border-top:4px solid ${CO.brand}">
     <div class="prev-hdr">
@@ -2302,7 +2313,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
   </div>`;
 }
 
-function printDoc(){
+function printDoc(mode='print'){
   const area=document.getElementById('print-area'); if(!area) return;
   const css=`
     *{box-sizing:border-box;margin:0;padding:0}
@@ -2323,16 +2334,42 @@ function printDoc(){
     button{display:none!important}
     @media print{body{padding:0;max-width:100%}@page{margin:12mm}}
   `;
-  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+CO.name+'</title><style>'+css+'</style></head><body>'+area.innerHTML+'</body></html>';
-  const blob=new Blob([html],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.target='_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('Opened in new tab — use Print (⌘P / Ctrl+P) to save as PDF');
+  const pfxKey={quotation:'quotation',invoice:'invoice',po:'po',do:'do','client-po':'clientPO'}[DOC_TYPE]||DOC_TYPE;
+  const docNum=EDIT_ID==='new'?`${fullPrefix(pfxKey)}-${String((CO.counter[pfxKey]||0)+1).padStart(4,'0')}`:EDIT_ID;
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+docNum+'</title><style>'+css+'</style></head><body>'+area.innerHTML+'</body></html>';
+
+  if(mode==='print'){
+    // Use hidden iframe — triggers print dialog on current page, connects to printer
+    let iframe=document.getElementById('_print_frame');
+    if(iframe) document.body.removeChild(iframe);
+    iframe=document.createElement('iframe');
+    iframe.id='_print_frame';
+    iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0';
+    document.body.appendChild(iframe);
+    iframe.srcdoc=html;
+    iframe.onload=function(){
+      try{
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      }catch(e){
+        // fallback for browsers that block iframe print
+        const blob=new Blob([html],{type:'text/html'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.target='_blank';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),5000);
+        toast('Opened in new tab — press Ctrl+P / ⌘+P to print');
+      }
+    };
+  } else {
+    // PDF — open in new tab, user chooses Save as PDF in print dialog
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.target='_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Opened in new tab — choose "Save as PDF" in the print dialog');
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -2365,6 +2402,15 @@ function renderSupInvoiceForm(){
   </div>
 
   <div class="panel"><h4>Invoice details</h4>
+    <div style="background:var(--accent-bg);border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Purchase Invoice No.</div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy);font-family:'SF Mono',Monaco,Consolas,monospace;letter-spacing:.5px">
+          ${EDIT_ID==='new'?`SINV-${String((CO.counter.supInvoice||0)+1).padStart(4,'0')}`:EDIT_ID}
+        </div>
+      </div>
+      <div>${EDIT_ID==='new'?'<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">NEW</span>':'<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">EDITING</span>'}</div>
+    </div>
     <div class="frow c3">
       <div class="fgrp"><label>Invoice date *</label><input type="date" id="f-date" value="${FORM.date||today()}" oninput="FORM.date=this.value"/></div>
       <div class="fgrp"><label>Due date</label><input type="date" id="f-due" value="${FORM.due||addDays(today(),30)}" oninput="FORM.due=this.value"/></div>
@@ -2455,7 +2501,7 @@ function renderSupInvoicePreview(cur,sub,gst,tot,party){
   return `
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
     <button class="btn" onclick="DOC_TAB='edit';render()">← Back</button>
-    <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+    <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
   </div>
   <div class="preview-doc" id="print-area" style="border-top:4px solid ${CO.brand}">
     <div class="prev-hdr">
@@ -2532,6 +2578,15 @@ function renderSupDOForm(){
   </div>
 
   <div class="panel"><h4>Delivery details</h4>
+    <div style="background:var(--accent-bg);border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Goods Received No.</div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy);font-family:'SF Mono',Monaco,Consolas,monospace;letter-spacing:.5px">
+          ${EDIT_ID==='new'?`SDO-${String((CO.counter.supDO||0)+1).padStart(4,'0')}`:EDIT_ID}
+        </div>
+      </div>
+      <div>${EDIT_ID==='new'?'<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">NEW</span>':'<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">EDITING</span>'}</div>
+    </div>
     <div class="frow c2">
       <div class="fgrp"><label>Delivery date (on DO)</label><input type="date" id="f-date" value="${FORM.date||today()}" oninput="FORM.date=this.value"/></div>
       <div class="fgrp"><label>Date goods received *</label><input type="date" id="f-recdate" value="${FORM.receivedDate||today()}" oninput="FORM.receivedDate=this.value"/></div>
@@ -2571,7 +2626,7 @@ function renderSupDOPreview(party){
   return `
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
     <button class="btn" onclick="DOC_TAB='edit';render()">← Back</button>
-    <button class="btn btn-navy" onclick="printDoc()">⎙ Print / PDF</button>
+    <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
   </div>
   <div class="preview-doc" id="print-area" style="border-top:4px solid ${CO.brand}">
     <div class="prev-hdr">
@@ -2989,7 +3044,7 @@ function renderReportModal(){
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn" onclick="MODAL=null;render()">Cancel</button>
       <button class="btn btn-navy" onclick="previewReport()">🔄 Refresh</button>
-      <button class="btn" onclick="printReport()">🖨 Print / PDF</button>
+      <button class="btn" onclick="printReport('print')">🖨 Print</button><button class="btn btn-navy" onclick="printReport('pdf')">⬇ Download PDF</button>
       <button class="btn btn-gold" onclick="downloadCSV()">⬇ Download CSV</button>
     </div>
   </div></div>`;
@@ -3151,7 +3206,7 @@ function previewReport(){
     </tr></tbody></table>`;
 }
 
-function printReport(){
+function printReport(mode='print'){
   const cat=window._rptCat||'docs';
   let title='', headers=[], rows=[], chips='', period='';
 
@@ -3198,10 +3253,24 @@ function printReport(){
     +'</body></html>';
   const blob=new Blob([printHtml],{type:'text/html'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.target='_blank';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('Opened in new tab — use Print (⌘P / Ctrl+P) to save as PDF');
+  if(mode==='print'){
+    let fr=document.getElementById('_print_frame');
+    if(fr) document.body.removeChild(fr);
+    fr=document.createElement('iframe');
+    fr.id='_print_frame';
+    fr.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0';
+    document.body.appendChild(fr);
+    fr.srcdoc=printHtml;
+    fr.onload=function(){
+      try{ fr.contentWindow.focus(); fr.contentWindow.print(); }
+      catch(e){ const a=document.createElement('a');a.href=url;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a); }
+    };
+  } else {
+    const a=document.createElement('a'); a.href=url; a.target='_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Opened in new tab — choose "Save as PDF" in the print dialog');
+  }
 }
 
 function downloadCSV(){
@@ -3307,7 +3376,7 @@ function renderClientReportModal(){
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn" onclick="MODAL=null;render()">Cancel</button>
       <button class="btn btn-navy" onclick="previewClientReport()">🔄 Refresh</button>
-      <button class="btn" onclick="printClientReport()">🖨 Print / PDF</button>
+      <button class="btn" onclick="printClientReport('print')">🖨 Print</button><button class="btn btn-navy" onclick="printClientReport('pdf')">⬇ Download PDF</button>
       <button class="btn btn-gold" onclick="downloadClientCSV()">⬇ Download CSV</button>
     </div>
   </div></div>`;
@@ -3404,7 +3473,7 @@ function previewClientReport(){
     </tr></tbody></table>`;
 }
 
-function printClientReport(){
+function printClientReport(mode='print'){
   const cid=document.getElementById('cr-client')?.value||'';
   const cl=DB.clients.find(x=>x.id===cid)||{name:'Unknown Client'};
   const docs=getClientReportDocs();
@@ -3445,10 +3514,25 @@ function printClientReport(){
     +'</body></html>';
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.target='_blank';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('Opened in new tab — use Print (⌘P / Ctrl+P) to save as PDF');
+  const fname=`ClientReport_${cl.name.replace(/\s+/g,'_')}_${getCrPeriodLabel()}`;
+  if(mode==='print'){
+    let fr=document.getElementById('_print_frame');
+    if(fr) document.body.removeChild(fr);
+    fr=document.createElement('iframe');
+    fr.id='_print_frame';
+    fr.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0';
+    document.body.appendChild(fr);
+    fr.srcdoc=html;
+    fr.onload=function(){
+      try{ fr.contentWindow.focus(); fr.contentWindow.print(); }
+      catch(e){ const a=document.createElement('a');a.href=url;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a); }
+    };
+  } else {
+    const a=document.createElement('a'); a.href=url; a.target='_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Opened in new tab — choose "Save as PDF" in the print dialog');
+  }
 }
 
 function downloadClientCSV(){
