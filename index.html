@@ -747,7 +747,7 @@ function renderDash(){
     <div class="stat"><div class="stat-label">Quotations (Month)</div><div class="stat-val" style="font-size:18px">${fmt(totQ)}</div><div class="stat-sub">${DB.quotations.length} documents</div></div>
     <div class="stat red"><div class="stat-label">Overdue Invoices</div><div class="stat-val" style="font-size:18px;color:var(--danger)">${fmt(ov)}</div><div class="stat-sub">Needs follow-up</div></div>
   </div>
-  <div class="sec-hdr"><h3>Recent Quotations</h3><button class="alink" onclick="nav('quotation')">View all →</button></div>
+  <div class="sec-hdr"><h3>Quotations</h3><button class="alink" onclick="nav('quotation')">View all →</button></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>QT No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
     <tbody>${DB.quotations.map(d=>`<tr>
@@ -763,7 +763,7 @@ function renderDash(){
       </td>
     </tr>`).join('')}</tbody>
   </table></div>
-  <div class="sec-hdr"><h3>Recent Sales Orders</h3><button class="alink" onclick="nav('client-po')">View all →</button></div>
+  <div class="sec-hdr"><h3>Sales Orders</h3><button class="alink" onclick="nav('client-po')">View all →</button></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>SO No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
     <tbody>${DB.clientPOs.map(d=>`<tr>
@@ -774,11 +774,6 @@ function renderDash(){
       <td><span class="badge b-${d.status||'outstanding'}">${d.status||'outstanding'}</span></td>
       <td><button class="alink" onclick="fromCPOInv('${d.id}')" style="color:var(--success)">→ Invoice</button></td>
     </tr>`).join('')}
-    <tr style="background:var(--card2);font-weight:600">
-      <td colspan="4" style="text-align:right;font-size:12px;color:var(--muted)">Total outstanding:</td>
-      <td style="color:var(--warning-tx)">${fmt(DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').reduce((s,d)=>s+d.amount,0))}</td>
-      <td colspan="2"></td>
-    </tr>
     </tbody>
   </table></div>
   <div class="sec-hdr"><h3>Invoices</h3><button class="alink" onclick="nav('invoice')">View all →</button></div>
@@ -1048,11 +1043,6 @@ function renderCPO(){
         <button class="alink" onclick="fromCPOtoDO('${d.id}')" style="color:var(--purple-tx)">→ DO</button>
       </td>
     </tr>`).join('')}
-    <tr style="background:var(--card2)">
-      <td colspan="4" style="text-align:right;font-size:12px;color:var(--muted);font-weight:600">Total outstanding:</td>
-      <td style="font-weight:700;color:var(--warning-tx)">${fmt(outstanding)}</td>
-      <td colspan="3"></td>
-    </tr>
     </tbody>
   </table></div>`;
 }
@@ -2831,6 +2821,37 @@ function renderSettingsPanel(){
         <div style="font-size:11px;color:var(--muted);margin-top:4px">YYMM code auto-updates each month (current: <strong>${getYYMM()}</strong> = ${new Date().toLocaleString('en-SG',{month:'long',year:'numeric'})}). Counters reset to 0001 on the 1st of each month.</div>
       </div>
     </div>
+
+    <div class="panel"><h4>Serial number counter reset</h4>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+        ⚠️ Use this to manually reset or set the starting number for any document type. The <strong>next</strong> document created will use the number you set + 1.
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Document type</th><th>Current counter</th><th>Next number</th><th>Reset to</th><th></th></tr></thead>
+          <tbody>
+            ${[
+              {label:'Quotation',        key:'quotation',  pfx:fullPrefix('quotation')},
+              {label:'Sales Invoice',    key:'invoice',    pfx:fullPrefix('invoice')},
+              {label:'Sales DO',         key:'do',         pfx:fullPrefix('do')},
+              {label:'Sales Order',      key:'clientPO',   pfx:fullPrefix('clientPO')},
+              {label:'Purchase Order',   key:'po',         pfx:fullPrefix('po')},
+            ].map(r=>`<tr>
+              <td style="font-weight:600">${r.label}</td>
+              <td style="font-family:monospace;color:var(--muted)">${CO.counter[r.key]||0}</td>
+              <td style="font-family:monospace;color:var(--accent-tx)">${r.pfx}-${String((CO.counter[r.key]||0)+1).padStart(4,'0')}</td>
+              <td><input type="number" id="ctr-${r.key}" value="${CO.counter[r.key]||0}" min="0" step="1"
+                style="width:90px;padding:5px 8px;border:1px solid var(--border-str);border-radius:6px;background:var(--input);color:var(--text);font-size:13px;font-family:inherit;text-align:right"/></td>
+              <td><button class="btn btn-sm btn-danger" onclick="resetCounter('${r.key}')">Reset</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+        💡 Enter <strong>0</strong> and click Reset to start from 0001 again. Enter <strong>49</strong> to make the next document 0050.
+      </div>
+    </div>
+
     <div class="panel"><h4>Default terms &amp; footer text</h4>
       <div class="frow"><div class="fgrp"><label>Quotation terms</label><textarea id="dt-qt">${CO.terms.quotation}</textarea></div></div>
       <div class="frow"><div class="fgrp"><label>Invoice payment note</label><textarea id="dt-inv">${CO.terms.invoice}</textarea></div></div>
@@ -2928,6 +2949,16 @@ function saveSetting(tab){
 }
 
 function addBank(){ CO.banks.push({id:'b'+Date.now(),bank:'',accName:CO.name,accNo:'',swift:'',branch:''}); render(); }
+function resetCounter(key){
+  const el=document.getElementById('ctr-'+key);
+  if(!el) return;
+  const val=parseInt(el.value)||0;
+  if(!confirm(`Reset ${key} counter to ${val}?\nNext document will be numbered ${String(val+1).padStart(4,'0')}.`)) return;
+  CO.counter[key]=val;
+  saveCO();
+  toast(`Counter reset — next number: ${String(val+1).padStart(4,'0')}`);
+  render();
+}
 function addStaff(){ if(!CO.staff) CO.staff=[]; CO.staff.push({name:'',mobile:''}); render(); }
 function saveStaffRow(i){
   const n=document.getElementById(`stf-name-${i}`); const m=document.getElementById(`stf-mob-${i}`);
