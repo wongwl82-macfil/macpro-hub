@@ -338,6 +338,10 @@ input[type=number]{-moz-appearance:textfield}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7m4 10v-6m4 6v-3"/></svg>
     Export Report
   </div>
+  <div class="sb-item" onclick="openSOAModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
+    Statement of Account
+  </div>
   <div class="sb-section">System</div>
   <div class="sb-item" onclick="nav('settings')" id="nav-settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -384,8 +388,8 @@ let PROD_PICKER_IDX = -1; // which line is showing product picker
    Fill in your credentials from:
    Supabase Dashboard → Settings → API
 ═══════════════════════════════════════════════ */
-const SUPABASE_URL = 'https://jedszqggdssdydplhyfq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3kC1Gf3_DDRd8loDmnsl0g_rUBtS9DS';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let _sb = null;
 function getSB(){
@@ -561,10 +565,46 @@ function defaultCo() {
       {name:'Wong WL', mobile:'+65 8838 6949'},
       {name:'Sales Team', mobile:'+65 6123 4567'},
     ],
+    fxRates:{
+      base:'SGD',
+      rates:[
+        {currency:'USD', rate:1.34, updatedAt: new Date().toISOString().slice(0,10)},
+        {currency:'MYR', rate:0.30, updatedAt: new Date().toISOString().slice(0,10)},
+        {currency:'EUR', rate:1.46, updatedAt: new Date().toISOString().slice(0,10)},
+        {currency:'GBP', rate:1.71, updatedAt: new Date().toISOString().slice(0,10)},
+        {currency:'AUD', rate:0.88, updatedAt: new Date().toISOString().slice(0,10)},
+      ]
+    },
   };
 }
 let CO = JSON.parse(localStorage.getItem('mp_co')||'null') || defaultCo();
 // saveCO defined above as async Supabase function
+// Migrate: add fxRates if missing
+if(!CO.fxRates) CO.fxRates = defaultCo().fxRates;
+if(!CO.staff)   CO.staff   = [];
+if(!CO.banks)   CO.banks   = [];
+
+/* ── FX HELPERS ── */
+// Convert any amount to base currency (SGD)
+function toBase(amount, currency){
+  const base = CO.fxRates?.base || 'SGD';
+  if(!currency || currency === base) return amount;
+  const r = (CO.fxRates?.rates||[]).find(x=>x.currency===currency);
+  return r ? amount * r.rate : amount; // fallback: treat as 1:1 if rate not found
+}
+// Format amount in base currency
+function fmtBase(amount, currency){
+  const base = CO.fxRates?.base || 'SGD';
+  const converted = toBase(amount, currency);
+  return `${base} ${Number(converted||0).toLocaleString('en-SG',{minimumFractionDigits:2})}`;
+}
+// Get rate for a currency
+function getRate(currency){
+  const base = CO.fxRates?.base || 'SGD';
+  if(currency === base) return 1;
+  const r = (CO.fxRates?.rates||[]).find(x=>x.currency===currency);
+  return r ? r.rate : null;
+}
 
 /* ═══════════════════════════════════════════════
    DATABASE
@@ -746,6 +786,16 @@ function renderDash(){
     <div class="stat"><div class="stat-label">Active Clients</div><div class="stat-val">${activeC}</div><div class="stat-sub">of ${DB.clients.length} total</div></div>
     <div class="stat"><div class="stat-label">Quotations (Month)</div><div class="stat-val" style="font-size:18px">${fmt(totQ)}</div><div class="stat-sub">${DB.quotations.length} documents</div></div>
     <div class="stat red"><div class="stat-label">Overdue Invoices</div><div class="stat-val" style="font-size:18px;color:var(--danger)">${fmt(ov)}</div><div class="stat-sub">Needs follow-up</div></div>
+    <div class="stat"><div class="stat-label">FX Rates (vs ${CO.fxRates?.base||'SGD'})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        ${(CO.fxRates?.rates||[]).filter(r=>r.rate).map(r=>`
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;text-align:center">
+            <span style="font-weight:700;color:var(--navy)">${r.currency}</span>
+            <span style="color:var(--muted)"> = ${r.rate}</span>
+          </div>`).join('') || '<span style="font-size:12px;color:var(--muted)">No rates set — <button class="alink" onclick="nav(\'settings\');S_TAB=\'currency\';render()">set now</button></span>'}
+      </div>
+      <div class="stat-sub" style="margin-top:6px">Updated: ${(CO.fxRates?.rates||[]).filter(r=>r.rate).map(r=>r.updatedAt).sort().pop()||'—'}</div>
+    </div>
   </div>
   <div class="sec-hdr"><h3>Quotations</h3><button class="alink" onclick="nav('quotation')">View all →</button></div>
   <div class="tbl-wrap"><table>
@@ -810,7 +860,8 @@ function renderContacts(type){
       <div class="cc-det">${x.email||'—'}</div>
       <div class="cc-det">${x.tel||'—'} · ${x.country}</div>
       <div class="cc-foot">
-        ${isC?`<button class="btn btn-sm" onclick="event.stopPropagation();fromClient('${x.id}')">New QT</button>`
+        ${isC?`<button class="btn btn-sm" onclick="event.stopPropagation();fromClient('${x.id}')">New QT</button>
+               <button class="btn btn-sm" onclick="event.stopPropagation();openSOAFromClient('${x.id}')">SOA</button>`
              :`<button class="btn btn-sm" onclick="event.stopPropagation();fromSupplier('${x.id}')">New PO</button>`}
         <button class="btn btn-sm" onclick="event.stopPropagation();openModal('${isC?'client':'supplier'}','${x.id}')">Edit</button>
       </div>
@@ -882,6 +933,8 @@ function renderModal(){
   const {type,id}=MODAL;
   if(type==='report')        return renderReportModal();
   if(type==='client-report') return renderClientReportModal();
+  if(type==='soa')           return renderSOAModal();
+  if(type==='payment')       return renderPaymentModal();
   if(type==='product') return renderProductModal(id);
   const isNew=id==='new', isC=type==='client';
   const list=isC?DB.clients:DB.suppliers;
@@ -1053,7 +1106,7 @@ function renderCPO(){
 function renderDocList(){
   const cfgs={
     quotation:{cols:['Ref','Client','Date','Valid until','Amount','Status'],rows:DB.quotations,flds:['id','clientId','date','valid','amount','status']},
-    invoice:  {cols:['Ref','Client','Date','Due date','Amount','Status'],   rows:DB.invoices,  flds:['id','clientId','date','due','amount','status']},
+    invoice:  {cols:['Invoice No.','Client','Date','Due date','Amount','Status','Payment'],   rows:DB.invoices,  flds:['id','clientId','date','due','amount','status','_pay']},
     do:       {cols:['DO Ref','Client','Date','Invoice Ref','Items','Status'],rows:DB.dos,     flds:['id','clientId','date','inv','items','status']},
     po:       {cols:['PO Ref','Supplier','Date','Amount','Ref QT','Status'],  rows:DB.pos,     flds:['id','supplierId','date','amount','ref','status']},
   };
@@ -1069,6 +1122,7 @@ function renderDocList(){
       if(f==='status')    return `<td><span class="badge b-${d[f]}">${d[f]}</span></td>`;
       if(f==='amount')    return `<td>${fmt(d[f],d.currency)}</td>`;
       if(f==='id')        return `<td class="mono">${d[f]}</td>`;
+      if(f==='_pay')      return `<td style="font-size:11px;color:var(--muted)">${d.status==='paid'?`<span style="color:var(--success-tx)">✓ ${d.paidDate||''}</span>${d.paidRef?' · '+d.paidRef:''}${d.paidMethod?' · '+d.paidMethod:''}` : '—'}</td>`;
       return `<td>${d[f]||'—'}</td>`;
     }).join('')}<td style="white-space:nowrap;display:flex;gap:8px;align-items:center">
       <button class="alink" onclick="openDocForm('${PAGE}','${d.id}')">Edit</button>
@@ -1078,7 +1132,12 @@ function renderDocList(){
       ${isQT  ? `<button class="alink" onclick="fromQTtoSO('${d.id}')"      style="color:var(--warning)">→ SO</button>
                  <button class="alink" onclick="fromQTtoInvoice('${d.id}')" style="color:var(--success)">→ Invoice</button>
                  <button class="alink" onclick="fromQTtoDO('${d.id}')"      style="color:var(--purple-tx)">→ DO</button>` : ''}
-      ${isInv ? `<button class="alink" onclick="fromINVtoDO('${d.id}')"     style="color:var(--purple-tx)">→ DO</button>` : ''}
+      ${isInv ? `<button class="alink" onclick="fromINVtoDO('${d.id}')"     style="color:var(--purple-tx)">→ DO</button>
+                 <button class="alink" onclick="openSOAFromClient('${d.clientId||''}')" style="color:var(--accent-tx)">SOA</button>
+                 ${d.status!=='paid'
+                   ? `<button class="alink" onclick="markInvoicePaid('${d.id}')" style="color:var(--success-tx);font-weight:600">✓ Mark paid</button>`
+                   : `<button class="alink" onclick="markInvoiceUnpaid('${d.id}')" style="color:var(--muted)">↩ Unpaid</button>`
+                 }` : ''}
     </td></tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -2693,6 +2752,7 @@ function renderSettings(){
     {id:'contact', label:'Contact details'},
     {id:'gst',     label:'GST / Tax settings'},
     {id:'banking', label:'Banking'},
+    {id:'currency',label:'💱 Currency & FX'},
     {id:'staff',   label:'Staff / PIC'},
     {id:'documents',label:'Document settings'},
     {id:'branding', label:'Branding'},
@@ -2861,6 +2921,63 @@ function renderSettingsPanel(){
     </div>
     <div style="display:flex;justify-content:flex-end"><button class="btn btn-navy" onclick="saveSetting('documents')">Save changes</button></div>`;
 
+  if(S_TAB==='currency'){
+    const base = CO.fxRates?.base || 'SGD';
+    const rates = CO.fxRates?.rates || [];
+    const allCurrencies = ['USD','MYR','EUR','GBP','AUD','JPY','CNY'];
+    return `
+    <div class="panel"><h4>Base Currency</h4>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        All multi-currency amounts are converted to the base currency for consolidated reporting.
+      </div>
+      <div class="frow c2">
+        <div class="fgrp"><label>Base / reporting currency</label>
+          <select id="fx-base" onchange="CO.fxRates.base=this.value">
+            ${['SGD','USD','MYR'].map(c=>`<option value="${c}" ${base===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel"><h4>Exchange Rates <span style="font-size:11px;font-weight:400;color:var(--muted)">— 1 unit of foreign currency = X ${base}</span></h4>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+        Enter the rate for converting each currency to <strong>${base}</strong>. Update regularly for accurate reporting.
+        Example: if 1 USD = 1.34 SGD, enter <strong>1.34</strong> in the USD row.
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Currency</th><th>Rate (1 unit → ${base})</th><th>Last updated</th><th></th></tr></thead>
+          <tbody>
+            ${allCurrencies.filter(c=>c!==base).map(c=>{
+              const r=rates.find(x=>x.currency===c)||{currency:c,rate:'',updatedAt:''};
+              return `<tr>
+                <td style="font-weight:600;font-family:monospace;font-size:13px">${c}</td>
+                <td><input type="text" inputmode="decimal" id="fx-rate-${c}" value="${r.rate||''}" placeholder="e.g. 1.3400"
+                  style="width:120px;padding:6px 9px;border:1px solid var(--border-str);border-radius:var(--radius);background:var(--input);color:var(--text);font-size:13px;font-family:inherit;text-align:right"/></td>
+                <td style="font-size:11px;color:var(--muted)">${r.updatedAt||'—'}</td>
+                <td><button class="btn btn-sm" onclick="saveFxRate('${c}')">Save</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-gold" style="margin-top:12px" onclick="saveAllFxRates()">Save all rates</button>
+    </div>
+
+    <div class="panel"><h4>Current rates summary</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${allCurrencies.filter(c=>c!==base).map(c=>{
+          const r=rates.find(x=>x.currency===c);
+          return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;text-align:center;min-width:100px">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">1 ${c}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--navy);margin-top:2px">${r?.rate ? r.rate+' '+base : '—'}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${r?.updatedAt||'not set'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
   if(S_TAB==='staff') return `
     <div class="panel"><h4>Staff / PIC list</h4>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Staff listed here appear in the PIC dropdown on quotations. Selecting a name auto-fills the mobile number.</div>
@@ -2949,6 +3066,30 @@ function saveSetting(tab){
 }
 
 function addBank(){ CO.banks.push({id:'b'+Date.now(),bank:'',accName:CO.name,accNo:'',swift:'',branch:''}); render(); }
+function saveFxRate(currency){
+  const el=document.getElementById('fx-rate-'+currency); if(!el) return;
+  const rate=parseFloat(el.value);
+  if(!rate||rate<=0){ toast('Enter a valid rate', false); return; }
+  if(!CO.fxRates) CO.fxRates={base:'SGD',rates:[]};
+  const idx=CO.fxRates.rates.findIndex(x=>x.currency===currency);
+  const entry={currency,rate,updatedAt:today()};
+  if(idx>=0) CO.fxRates.rates[idx]=entry; else CO.fxRates.rates.push(entry);
+  saveCO(); toast(`${currency} rate saved: 1 ${currency} = ${rate} ${CO.fxRates.base}`); render();
+}
+function saveAllFxRates(){
+  if(!CO.fxRates) CO.fxRates={base:CO.currency||'SGD',rates:[]};
+  const base=document.getElementById('fx-base')?.value||CO.fxRates.base;
+  CO.fxRates.base=base;
+  const currencies=['USD','MYR','EUR','GBP','AUD','JPY','CNY'].filter(c=>c!==base);
+  currencies.forEach(c=>{
+    const el=document.getElementById('fx-rate-'+c); if(!el||!el.value) return;
+    const rate=parseFloat(el.value); if(!rate||rate<=0) return;
+    const idx=CO.fxRates.rates.findIndex(x=>x.currency===c);
+    const entry={currency:c,rate,updatedAt:today()};
+    if(idx>=0) CO.fxRates.rates[idx]=entry; else CO.fxRates.rates.push(entry);
+  });
+  saveCO(); toast('All FX rates saved'); render();
+}
 function resetCounter(key){
   const el=document.getElementById('ctr-'+key);
   if(!el) return;
@@ -3221,6 +3362,7 @@ function previewReport(){
       <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Date</th>
       <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Party</th>
       <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">Amount</th>
+      <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">${CO.fxRates?.base||'SGD'} Equiv.</th>
       <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">Status</th>
     </tr></thead>
     <tbody>${docs.map(d=>`<tr style="border-bottom:1px solid var(--border)">
@@ -3229,11 +3371,14 @@ function previewReport(){
       <td style="padding:5px 8px">${d.date||'—'}</td>
       <td style="padding:5px 8px">${d._party||'—'}</td>
       <td style="padding:5px 8px;text-align:right">${d.amount?fmt(d.amount,d.currency):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--accent-tx)">${d.amount?fmtBase(d.amount,d.currency):'—'}</td>
       <td style="padding:5px 8px"><span class="badge b-${d.status||''}">${d.status||'—'}</span></td>
     </tr>`).join('')}
     <tr style="background:var(--card2);font-weight:700">
-      <td colspan="4" style="padding:6px 8px;text-align:right">Total</td>
-      <td style="padding:6px 8px;text-align:right">${fmt(totalAmt)}</td><td></td>
+      <td colspan="4" style="padding:6px 8px;text-align:right">Total (${CO.fxRates?.base||'SGD'} equivalent)</td>
+      <td></td>
+      <td style="padding:6px 8px;text-align:right">${fmt(docs.reduce((s,d)=>s+toBase(d.amount||0,d.currency),0),CO.fxRates?.base||'SGD')}</td>
+      <td></td>
     </tr></tbody></table>`;
 }
 
@@ -3320,8 +3465,9 @@ function downloadCSV(){
   } else {
     const docs=getReportDocs();
     label=getRptPeriodLabel();
-    headers=['Document Type','Document No.','Date','Party (Client/Supplier)','Reference','Currency','Amount','Status','Notes'];
-    rows=docs.map(d=>[d._type,d.id,d.date||'',d._party||'',d.ref||d.supplierRef||'',d.currency||CO.currency,(d.amount||0).toFixed(2),d.status||'',(d.notes||'').replace(/"/g,"'")]);
+    const base=CO.fxRates?.base||'SGD';
+    headers=['Document Type','Document No.','Date','Party (Client/Supplier)','Reference','Currency','Amount',base+' Equivalent','Status','Notes'];
+    rows=docs.map(d=>[d._type,d.id,d.date||'',d._party||'',d.ref||d.supplierRef||'',d.currency||CO.currency,(d.amount||0).toFixed(2),toBase(d.amount||0,d.currency).toFixed(2),d.status||'',(d.notes||'').replace(/"/g,"'")]);
   }
 
   const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
@@ -3335,6 +3481,387 @@ function downloadCSV(){
 /* ═══════════════════════════════════════════════
    CLIENT REPORT
 ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   STATEMENT OF ACCOUNT (SOA)
+═══════════════════════════════════════════════ */
+function openSOAFromClient(cid){
+  openModal('soa', null);
+  setTimeout(()=>{
+    const sel=document.getElementById('soa-client');
+    if(sel){ sel.value=cid; previewSOA(); }
+  }, 100);
+}
+function openSOAModal(){ openModal('soa', null); }
+
+/* ═══════════════════════════════════════════════
+   PAYMENT RECEIPT
+═══════════════════════════════════════════════ */
+function markInvoicePaid(invId){
+  const inv = DB.invoices.find(x=>x.id===invId); if(!inv) return;
+  // Show payment modal
+  MODAL = {type:'payment', id:invId};
+  render();
+}
+
+function markInvoiceUnpaid(invId){
+  if(!confirm('Mark this invoice as unpaid / pending?')) return;
+  const inv = DB.invoices.find(x=>x.id===invId); if(!inv) return;
+  inv.status    = 'pending';
+  inv.paidDate  = '';
+  inv.paidRef   = '';
+  inv.paidNote  = '';
+  saveDB(); toast('Invoice marked as unpaid'); render();
+}
+
+function renderPaymentModal(){
+  const invId = MODAL.id;
+  const inv   = DB.invoices.find(x=>x.id===invId); if(!inv) return '';
+  const cl    = DB.clients.find(x=>x.id===inv.clientId)||{};
+  return `<div class="overlay"><div class="modal" style="width:480px">
+    <div class="modal-hdr">
+      <h3>✓ Record Payment</h3>
+      <button class="modal-close" onclick="MODAL=null;render()">×</button>
+    </div>
+
+    <!-- Invoice summary -->
+    <div style="background:var(--accent-bg);border:1px solid #bfdbfe;border-radius:var(--radius);padding:12px 14px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Invoice</div>
+          <div style="font-size:15px;font-weight:700;color:var(--navy);font-family:monospace">${invId}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${cl.name||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Amount due</div>
+          <div style="font-size:18px;font-weight:800;color:var(--navy)">${fmt(inv.amount, inv.currency)}</div>
+          <div style="font-size:11px;color:var(--muted)">Due: ${inv.due||'—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frow c2">
+      <div class="fgrp"><label>Date payment received *</label>
+        <input type="date" id="pay-date" value="${today()}"/>
+      </div>
+      <div class="fgrp"><label>Payment method</label>
+        <select id="pay-method">
+          <option>Bank transfer</option>
+          <option>Cheque</option>
+          <option>Cash</option>
+          <option>PayNow</option>
+          <option>Credit card</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrp"><label>Payment reference / cheque no.</label>
+      <input id="pay-ref" placeholder="e.g. TT ref, cheque no., transaction ID"/>
+    </div>
+    <div class="fgrp"><label>Amount received</label>
+      <input type="text" inputmode="decimal" id="pay-amount" value="${inv.amount}" style="text-align:right"
+        placeholder="${inv.amount}"/>
+    </div>
+    <div class="fgrp"><label>Notes (optional)</label>
+      <input id="pay-note" placeholder="e.g. partial payment, bank charges deducted"/>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn" onclick="MODAL=null;render()">Cancel</button>
+      <button class="btn btn-navy" onclick="confirmPayment('${invId}')">✓ Confirm payment</button>
+    </div>
+  </div></div>`;
+}
+
+function confirmPayment(invId){
+  const inv = DB.invoices.find(x=>x.id===invId); if(!inv) return;
+  const date   = document.getElementById('pay-date')?.value   || today();
+  const method = document.getElementById('pay-method')?.value || '';
+  const ref    = document.getElementById('pay-ref')?.value    || '';
+  const amount = parseFloat(document.getElementById('pay-amount')?.value)||inv.amount;
+  const note   = document.getElementById('pay-note')?.value   || '';
+
+  if(!date){ toast('Enter the payment date', false); return; }
+
+  inv.status   = 'paid';
+  inv.paidDate = date;
+  inv.paidRef  = ref;
+  inv.paidMethod = method;
+  inv.paidAmount = amount;
+  inv.paidNote = note;
+
+  saveDB();
+  MODAL = null;
+  toast(`✓ Payment recorded — ${invId} marked as paid`);
+  render();
+}
+
+function renderSOAModal(){
+  const now = new Date();
+  const curYYYYMM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const firstDay  = curYYYYMM+'-01';
+  const lastDay   = today();
+  const clientOpts = DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  const html=`<div class="overlay"><div class="modal" style="width:660px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <h3>📋 Statement of Account</h3>
+      <button class="modal-close" onclick="MODAL=null;render()">×</button>
+    </div>
+
+    <div class="frow c2" style="margin-bottom:10px">
+      <div class="fgrp"><label>Client *</label>
+        <select id="soa-client" onchange="previewSOA()">
+          <option value="">— Select client —</option>${clientOpts}
+        </select>
+      </div>
+      <div class="fgrp"><label>Currency view</label>
+        <select id="soa-cur" onchange="previewSOA()">
+          <option value="all">All currencies</option>
+          <option value="SGD">SGD only</option>
+          <option value="USD">USD only</option>
+          <option value="MYR">MYR only</option>
+          <option value="base">Converted to ${CO.fxRates?.base||'SGD'}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="frow c2" style="margin-bottom:14px">
+      <div class="fgrp"><label>From date</label>
+        <input type="date" id="soa-from" value="${firstDay}" onchange="previewSOA()"/>
+      </div>
+      <div class="fgrp"><label>To date</label>
+        <input type="date" id="soa-to" value="${lastDay}" onchange="previewSOA()"/>
+      </div>
+    </div>
+
+    <!-- Client card -->
+    <div id="soa-client-card" style="display:none;background:var(--accent-bg);border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;font-size:12px"></div>
+
+    <!-- Summary chips -->
+    <div id="soa-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+
+    <!-- Preview -->
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:14px;max-height:300px;overflow-y:auto">
+      <div id="soa-preview" style="font-size:12px;color:var(--muted)">Select a client to generate statement.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn" onclick="MODAL=null;render()">Cancel</button>
+      <button class="btn btn-navy" onclick="previewSOA()">🔄 Refresh</button>
+      <button class="btn" onclick="printSOA('print')">🖨 Print</button>
+      <button class="btn btn-navy" onclick="printSOA('pdf')">⬇ Download PDF</button>
+      <button class="btn btn-gold" onclick="downloadSOACSV()">⬇ Download CSV</button>
+    </div>
+  </div></div>`;
+  setTimeout(()=>{ if(DB.clients.length===1){ document.getElementById('soa-client').value=DB.clients[0].id; previewSOA(); } }, 80);
+  return html;
+}
+
+function getSOAData(){
+  const cid  = document.getElementById('soa-client')?.value||'';
+  const from = document.getElementById('soa-from')?.value||'';
+  const to   = document.getElementById('soa-to')?.value||'';
+  const curV = document.getElementById('soa-cur')?.value||'all';
+  if(!cid) return {cl:null,rows:[],totalInvoiced:0,totalPaid:0,balance:0,base:CO.fxRates?.base||'SGD'};
+
+  const cl = DB.clients.find(x=>x.id===cid)||{};
+  const base = CO.fxRates?.base||'SGD';
+
+  // Collect invoices for this client in period
+  const invoices = DB.invoices.filter(d=>{
+    const dt=d.date||'';
+    return d.clientId===cid && (!from||dt>=from) && (!to||dt<=to);
+  });
+
+  // Build rows
+  const rows = invoices.map(d=>{
+    const origAmt = d.amount||0;
+    const dispAmt = curV==='base' ? toBase(origAmt,d.currency) : origAmt;
+    const dispCur  = curV==='base' ? base : d.currency;
+    const isPaid   = d.status==='paid';
+    return {
+      date:d.date, docNo:d.id, ref:d.ref||'—', currency:d.currency,
+      origAmt, dispAmt, dispCur,
+      invoiced: isPaid ? 0 : dispAmt,
+      paid:     isPaid ? dispAmt : 0,
+      status:d.status
+    };
+  }).filter(r=> curV==='all'||curV==='base'||(r.currency===curV))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  // Running balance
+  let balance=0;
+  rows.forEach(r=>{ r.invoiced_amt=r.dispAmt; const rawPaid = r.status==='paid'?(r.paidAmount?toBase(r.paidAmount,r.currency):r.dispAmt):0; r.paid_amt=rawPaid; balance+=r.invoiced_amt-r.paid_amt; r.balance=balance; });
+
+  const totalInvoiced = rows.reduce((s,r)=>s+r.invoiced_amt,0);
+  const totalPaid     = rows.reduce((s,r)=>s+r.paid_amt,0);
+  const dispCur       = curV==='base'?base:(curV==='all'?'(multi)':curV);
+
+  return {cl,rows,totalInvoiced,totalPaid,balance,dispCur,base};
+}
+
+function previewSOA(){
+  const {cl,rows,totalInvoiced,totalPaid,balance,dispCur} = getSOAData();
+  const card=document.getElementById('soa-client-card');
+  const chips=document.getElementById('soa-chips');
+  const el=document.getElementById('soa-preview');
+
+  if(card){
+    if(cl?.name){
+      card.style.display='';
+      card.innerHTML=`<strong>${cl.name}</strong>${cl.tel?' &nbsp;·&nbsp; '+cl.tel:''}${cl.email?' &nbsp;·&nbsp; '+cl.email:''}${cl.contact?' &nbsp;·&nbsp; Attn: '+cl.contact:''}${cl.addr?'<br><span style="color:var(--muted)">'+cl.addr+'</span>':''}`;
+    } else card.style.display='none';
+  }
+
+  if(!cl?.name){ if(el) el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted)">Select a client above.</div>'; return; }
+
+  if(chips) chips.innerHTML=`
+    <span style="background:#dbeafe;color:#1d4ed8;padding:2px 10px;border-radius:20px;font-size:12px">Invoiced: <strong>${dispCur!=='(multi)'?dispCur+' ':''} ${totalInvoiced.toLocaleString('en-SG',{minimumFractionDigits:2})}</strong></span>
+    <span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:12px">Paid: <strong>${totalPaid.toLocaleString('en-SG',{minimumFractionDigits:2})}</strong></span>
+    <span style="background:${balance>0?'#fee2e2':'#d1fae5'};color:${balance>0?'#991b1b':'#065f46'};padding:2px 10px;border-radius:20px;font-size:12px">Balance: <strong>${balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</strong></span>
+    <span style="background:var(--card2);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:12px">${rows.length} invoices</span>`;
+
+  if(!rows.length){ if(el) el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted)">No invoices found for this client in the selected period.</div>'; return; }
+
+  if(el) el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--card2)">
+      <th style="padding:5px 8px;border-bottom:1px solid var(--border)">Date</th>
+      <th style="padding:5px 8px;border-bottom:1px solid var(--border)">Invoice No.</th>
+      <th style="padding:5px 8px;border-bottom:1px solid var(--border)">Ref</th>
+      <th style="padding:5px 8px;border-bottom:1px solid var(--border)">Currency</th>
+      <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">Invoiced</th>
+      <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">Paid</th>
+      <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">Balance</th>
+      <th style="padding:5px 8px;border-bottom:1px solid var(--border)">Status</th>
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);${r.status==='overdue'?'background:#fff5f5':''}">
+      <td style="padding:5px 8px">${r.date}</td>
+      <td style="padding:5px 8px;font-family:monospace;font-size:11px">${r.docNo}</td>
+      <td style="padding:5px 8px;color:var(--muted)">${r.ref}</td>
+      <td style="padding:5px 8px;font-size:11px">${r.currency}</td>
+      <td style="padding:5px 8px;text-align:right">${r.invoiced_amt.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--success-tx)">${r.paid_amt>0?r.paid_amt.toLocaleString('en-SG',{minimumFractionDigits:2}):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:600;color:${r.balance>0?'#991b1b':'#065f46'}">${r.balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+      <td style="padding:5px 8px"><span class="badge b-${r.status}">${r.status}</span></td>
+    </tr>`).join('')}
+    <tr style="background:var(--card2);font-weight:700">
+      <td colspan="4" style="padding:6px 8px;text-align:right">Total</td>
+      <td style="padding:6px 8px;text-align:right">${totalInvoiced.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+      <td style="padding:6px 8px;text-align:right;color:var(--success-tx)">${totalPaid.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+      <td style="padding:6px 8px;text-align:right;color:${balance>0?'#991b1b':'#065f46'}">${balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+      <td></td>
+    </tr></tbody></table>`;
+}
+
+function buildSOAHtml(){
+  const {cl,rows,totalInvoiced,totalPaid,balance,dispCur} = getSOAData();
+  const from=document.getElementById('soa-from')?.value||'';
+  const to  =document.getElementById('soa-to')?.value||'';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;max-width:760px;margin:0 auto}
+  h1{font-size:18px;color:#0B1F4B;margin-bottom:2px}.sub{font-size:12px;color:#666;margin-bottom:10px}
+  .info{background:#f0f4ff;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600}
+  table{width:100%;border-collapse:collapse}
+  th{background:#0B1F4B;color:#fff;padding:8px 10px;text-align:left;font-size:11px}
+  td{padding:7px 10px;border-bottom:1px solid #eee;font-size:12px}
+  tr:nth-child(even){background:#f9f9f9}.r{text-align:right}
+  .tot td{background:#f0f4ff;font-weight:700}
+  .overdue{background:#fff5f5}
+  .footer{margin-top:16px;border-top:1px solid #eee;padding-top:10px;font-size:10px;color:#aaa}
+  .balance-box{border:2px solid #0B1F4B;border-radius:8px;padding:12px 18px;text-align:right;margin-top:14px;display:inline-block;min-width:220px}
+  @media print{body{padding:8mm}@page{margin:8mm}}`;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SOA — ${cl?.name||''}</title><style>${css}</style></head><body>
+  <h1>${CO.name}</h1>
+  <div class="sub">Statement of Account &nbsp;·&nbsp; Period: <strong>${from}</strong> to <strong>${to}</strong></div>
+  <div class="info">
+    <strong>${cl?.name||'—'}</strong>${cl?.tel?' &nbsp;·&nbsp; '+cl.tel:''}${cl?.email?' &nbsp;·&nbsp; '+cl.email:''}<br>
+    ${cl?.addr||''}${cl?.contact?'<br>Attn: '+cl.contact:''}
+  </div>
+  <table><thead><tr>
+    <th>Date</th><th>Invoice No.</th><th>Reference</th><th>Currency</th>
+    <th class="r">Invoiced</th><th class="r">Paid</th><th class="r">Balance</th><th>Status</th>
+  </tr></thead><tbody>
+  ${rows.map(r=>`<tr class="${r.status==='overdue'?'overdue':''}">
+    <td>${r.date}</td>
+    <td style="font-family:monospace">${r.docNo}</td>
+    <td>${r.ref}</td>
+    <td>${r.currency}</td>
+    <td class="r">${r.invoiced_amt.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+    <td class="r" style="color:#065f46">${r.paid_amt>0?r.paid_amt.toLocaleString('en-SG',{minimumFractionDigits:2}):'—'}</td>
+    <td class="r" style="color:${r.balance>0?'#991b1b':'#065f46'};font-weight:600">${r.balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+    <td>${r.status}</td>
+  </tr>`).join('')}
+  <tr class="tot">
+    <td colspan="4" class="r">Total</td>
+    <td class="r">${totalInvoiced.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+    <td class="r" style="color:#065f46">${totalPaid.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+    <td class="r" style="color:${balance>0?'#991b1b':'#065f46'}">${balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+    <td></td>
+  </tr></tbody></table>
+  <div style="text-align:right;margin-top:14px">
+    <div class="balance-box">
+      <div style="font-size:11px;color:#666;margin-bottom:4px">AMOUNT DUE</div>
+      <div style="font-size:22px;font-weight:800;color:${balance>0?'#991b1b':'#065f46'}">${dispCur!=='(multi)'?dispCur+' ':''} ${balance.toLocaleString('en-SG',{minimumFractionDigits:2})}</div>
+    </div>
+  </div>
+  <div class="footer">${CO.name} · ${CO.email} · ${CO.tel} · ${CO.addr}<br>Generated ${new Date().toLocaleString('en-SG')} · This is a computer-generated statement.</div>
+  </body></html>`;
+}
+
+function printSOA(mode='print'){
+  const {cl,rows} = getSOAData();
+  if(!cl?.name){ toast('Select a client first', false); return; }
+  if(!rows.length){ toast('No invoices found for this period', false); return; }
+  const html=buildSOAHtml();
+  if(mode==='print'){
+    let fr=document.getElementById('_print_frame');
+    if(fr) document.body.removeChild(fr);
+    fr=document.createElement('iframe');
+    fr.id='_print_frame';
+    fr.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0';
+    document.body.appendChild(fr);
+    fr.srcdoc=html;
+    fr.onload=function(){ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){} };
+  } else {
+    const from=document.getElementById('soa-from')?.value||today();
+    const to  =document.getElementById('soa-to')?.value||today();
+    const fname=`SOA_${cl.name.replace(/\s+/g,'_')}_${from}_${to}`;
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.target='_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Opened — choose "Save as PDF" in print dialog');
+  }
+}
+
+function downloadSOACSV(){
+  const {cl,rows,totalInvoiced,totalPaid,balance,dispCur} = getSOAData();
+  if(!cl?.name){ toast('Select a client first', false); return; }
+  const from=document.getElementById('soa-from')?.value||'';
+  const to  =document.getElementById('soa-to')?.value||'';
+  const headers=['Date','Invoice No.','Reference','Currency','Invoiced','Paid','Balance','Status'];
+  const csvRows=rows.map(r=>[r.date,r.docNo,r.ref,r.currency,r.invoiced_amt.toFixed(2),r.paid_amt.toFixed(2),r.balance.toFixed(2),r.status]);
+  csvRows.push([]);
+  csvRows.push(['','','','Total',totalInvoiced.toFixed(2),totalPaid.toFixed(2),balance.toFixed(2),'']);
+  const csv=[
+    [`Statement of Account — ${cl.name}`],
+    [`Period: ${from} to ${to}`],
+    [`Generated: ${today()}`],
+    [],
+    headers,
+    ...csvRows
+  ].map(r=>r.map?r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','):'').join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=Object.assign(document.createElement('a'),{href:url,download:`SOA_${cl.name.replace(/\s+/g,'_')}_${from}_${to}.csv`});
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  toast('SOA CSV downloaded');
+}
+
 function openClientReportModal(){ openModal('client-report', null); }
 
 function renderClientReportModal(){
@@ -3571,8 +4098,9 @@ function downloadClientCSV(){
   const cl=DB.clients.find(x=>x.id===cid)||{name:'Client'};
   const docs=getClientReportDocs();
   const label=`${cl.name.replace(/\s+/g,'_')}_${getCrPeriodLabel()}`;
-  const headers=['Document Type','Document No.','Date','Reference','Currency','Amount','Status','Notes'];
-  const rows=docs.map(d=>[d._type,d.id,d.date||'',d.ref||'',d.currency||CO.currency,(d.amount||0).toFixed(2),d.status||'',(d.notes||'').replace(/"/g,"'")]);
+  const base=CO.fxRates?.base||'SGD';
+  const headers=['Document Type','Document No.','Date','Reference','Currency','Amount',base+' Equivalent','Status','Notes'];
+  const rows=docs.map(d=>[d._type,d.id,d.date||'',d.ref||'',d.currency||CO.currency,(d.amount||0).toFixed(2),toBase(d.amount||0,d.currency).toFixed(2),d.status||'',(d.notes||'').replace(/"/g,"'")]);
   const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
