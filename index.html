@@ -274,7 +274,7 @@ input[type=number]{-moz-appearance:textfield}
 }
 .info-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--warning-bg);color:var(--warning-tx);padding:4px 10px;border-radius:6px;margin-bottom:10px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <div id="shell">
@@ -497,18 +497,25 @@ function authMsg(msg){const m=document.getElementById('auth-msg');if(m){m.textCo
 
 async function doLogin(){
   const sb=getSB();
-  if(!sb){authErr('Supabase not configured — add your SUPABASE_URL and SUPABASE_KEY.');return;}
+  if(!sb){authErr('Supabase not configured — check SUPABASE_URL and SUPABASE_KEY in the file.');return;}
   const email=document.getElementById('auth-email')?.value?.trim();
   const pass=document.getElementById('auth-pass')?.value;
   if(!email||!pass){authErr('Please enter email and password.');return;}
+  // Validate URL format
+  if(!SUPABASE_URL.startsWith('https://')||SUPABASE_URL.includes('/rest/')||SUPABASE_URL.endsWith('/')){
+    authErr('SUPABASE_URL is incorrect. It should be exactly: https://xxxxxxxxxx.supabase.co (no trailing slash, no /rest/v1/)');return;
+  }
   try{
-    const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
-    if(error)throw error;
-    AUTH_USER=data.user;
+    const res=await sb.auth.signInWithPassword({email,password:pass});
+    if(res.error) throw res.error;
+    AUTH_USER=res.data.user;
     hideLogin();
     const ue=document.getElementById('user-email');if(ue)ue.textContent=email;
     loadFromCloud();
-  }catch(e){authErr(e.message||'Sign in failed. Check your credentials.');}
+  }catch(e){
+    console.error('Login error:',e);
+    authErr(e.message||'Sign in failed. Check your credentials and try again.');
+  }
 }
 async function doReset(){
   const sb=getSB();if(!sb){authErr('Supabase not configured.');return;}
@@ -525,13 +532,14 @@ async function checkSession(){
   if(!isConfigured()){setSyncStatus('offline');loadFromCloud();return;}
   const sb=getSB();if(!sb){loadFromCloud();return;}
   try{
-    const{data:{session}}=await sb.auth.getSession();
-    if(session){
+    const res=await sb.auth.getSession();
+    const session=res?.data?.session||null;
+    if(session&&session.user){
       AUTH_USER=session.user;
       const ue=document.getElementById('user-email');if(ue)ue.textContent=session.user.email;
       loadFromCloud();
     } else showLogin();
-  }catch(e){console.warn('session:',e);showLogin();}
+  }catch(e){console.warn('session error:',e);showLogin();}
 }
 
 /* ═══════════════════════════════════════════════
@@ -782,7 +790,7 @@ function renderDash(){
   const activeC=DB.clients.filter(c=>c.status==='active').length;
   return `
   <div class="stats">
-    <div class="stat"><div class="stat-label">Outstanding Sales Orders</div><div class="stat-val" style="font-size:18px">${fmt(DB.clientPOs.filter(d=>d.status==='outstanding').reduce((s,d)=>s+d.amount,0))}</div><div class="stat-sub">${DB.clientPOs.filter(d=>d.status==='outstanding').length} of ${DB.clientPOs.length} pending</div></div>
+    <div class="stat"><div class="stat-label">Outstanding Sales Orders</div><div class="stat-val" style="font-size:18px">${fmt(DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').reduce((s,d)=>s+d.amount,0))}</div><div class="stat-sub">${DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').length} of ${DB.clientPOs.length} pending</div></div>
     <div class="stat"><div class="stat-label">Active Clients</div><div class="stat-val">${activeC}</div><div class="stat-sub">of ${DB.clients.length} total</div></div>
     <div class="stat"><div class="stat-label">Quotations (Month)</div><div class="stat-val" style="font-size:18px">${fmt(totQ)}</div><div class="stat-sub">${DB.quotations.length} documents</div></div>
     <div class="stat red"><div class="stat-label">Overdue Invoices</div><div class="stat-val" style="font-size:18px;color:var(--danger)">${fmt(ov)}</div><div class="stat-sub">Needs follow-up</div></div>
@@ -1344,8 +1352,7 @@ function openDocForm(type,id){
       poRef:rec.poRef||'',
       ourRef:rec.ourRef||'',
       transport:rec.transport||'',
-      soStatus:rec.status||'outstanding',
-      // Quotation-specific
+      soStatus:rec.status||'outstanding',      // Quotation-specific
       pic:rec.pic||'', picTel:rec.picTel||'',
       validityText:rec.validityText||'30 Days',
       deliveryTerm:rec.deliveryTerm||'Ex-Singapore',
@@ -1822,6 +1829,11 @@ function saveDoc(){
   if(DOC_TYPE==='invoice')  {rec.due=validV;rec.status='pending';}
   if(DOC_TYPE==='po')       {rec.status='pending';}
   if(DOC_TYPE==='do')       {rec.status='issued';rec.items=LINE_ITEMS.map(l=>l.desc).join(', ');}
+  if(DOC_TYPE==='client-po'){
+    const soSel=document.getElementById('f-so-status');
+    rec.status=soSel?soSel.value:(FORM.soStatus||'outstanding');
+    rec.items=LINE_ITEMS.map(l=>l.desc).filter(Boolean).join(', ')||rec.items||'';
+  }
   if(isNew) DB[key].push(rec);
   else { const idx=DB[key].findIndex(x=>x.id===EDIT_ID); if(idx>=0)DB[key][idx]=rec; }
   saveDB(); DOC_TYPE=null; toast('Document saved'); render();
