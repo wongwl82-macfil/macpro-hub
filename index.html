@@ -77,6 +77,7 @@ tbody tr:hover td{background:var(--card2)}
 /* BADGES */
 .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .b-draft,.b-pending,.b-inactive{background:var(--warning-bg);color:var(--warning-tx)}
+.b-converted{background:#ede9fe;color:#5b21b6}
 .b-sent,.b-issued{background:var(--accent-bg);color:var(--accent-tx)}
 .b-accepted,.b-paid,.b-active,.b-delivered{background:var(--success-bg);color:var(--success-tx)}
 .b-overdue,.b-cancelled{background:var(--danger-bg);color:var(--danger-tx)}
@@ -785,14 +786,22 @@ function render(){
    DASHBOARD
 ═══════════════════════════════════════════════ */
 function renderDash(){
-  const totQ=DB.quotations.reduce((s,d)=>s+d.amount,0);
+  const activeQTs=DB.quotations.filter(d=>d.status!=='converted');
+  const totQ=activeQTs.reduce((s,d)=>s+d.amount,0);
   const ov=DB.invoices.filter(d=>d.status==='overdue').reduce((s,d)=>s+d.amount,0);
   const activeC=DB.clients.filter(c=>c.status==='active').length;
   return `
   <div class="stats">
     <div class="stat"><div class="stat-label">Outstanding Sales Orders</div><div class="stat-val" style="font-size:18px">${fmt(DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').reduce((s,d)=>s+d.amount,0))}</div><div class="stat-sub">${DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').length} of ${DB.clientPOs.length} pending</div></div>
-    <div class="stat"><div class="stat-label">Active Clients</div><div class="stat-val">${activeC}</div><div class="stat-sub">of ${DB.clients.length} total</div></div>
-    <div class="stat"><div class="stat-label">Quotations (Month)</div><div class="stat-val" style="font-size:18px">${fmt(totQ)}</div><div class="stat-sub">${DB.quotations.length} documents</div></div>
+    <div class="stat"><div class="stat-label">Invoiced (This Month)</div>
+    ${(()=>{
+      const now=new Date();
+      const yyyymm=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const monthInv=DB.invoices.filter(d=>(d.date||'').startsWith(yyyymm));
+      const total=monthInv.reduce((s,d)=>s+toBase(d.amount||0,d.currency),0);
+      return `<div class="stat-val" style="font-size:18px">${fmt(total,CO.fxRates?.base||'SGD')}</div><div class="stat-sub">${monthInv.length} invoices · ${CO.fxRates?.base||'SGD'} equiv.</div>`;
+    })()}</div>
+    <div class="stat"><div class="stat-label">Quotations (Month)</div><div class="stat-val" style="font-size:18px">${fmt(totQ)}</div><div class="stat-sub">${activeQTs.length} active</div></div>
     <div class="stat red"><div class="stat-label">Overdue Invoices</div><div class="stat-val" style="font-size:18px;color:var(--danger)">${fmt(ov)}</div><div class="stat-sub">Needs follow-up</div></div>
     <div class="stat"><div class="stat-label">FX Rates (vs ${CO.fxRates?.base||'SGD'})</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
@@ -808,7 +817,7 @@ function renderDash(){
   <div class="sec-hdr"><h3>Quotations</h3><button class="alink" onclick="nav('quotation')">View all →</button></div>
   <div class="tbl-wrap"><table>
     <thead><tr><th>QT No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
-    <tbody>${DB.quotations.map(d=>`<tr>
+    <tbody>${DB.quotations.filter(d=>d.status!=='converted').map(d=>`<tr>
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.date}</td>
@@ -1293,7 +1302,11 @@ function fromQTtoSO(qtId){
     docGstOn:qt.docGstOn, docGstRate:qt.docGstRate,
     billingAddr:'', deliveryAddr:'', deliveryAttn:'',
     transport:'', ourRef:'', doRef:'', invRef:'', poRef:'',
+    soStatus:'outstanding',
   };
+  // Mark quotation as converted
+  qt.status='converted';
+  saveDB();
   nav('client-po'); setTimeout(()=>{DOC_TYPE='client-po';EDIT_ID='new';render();},10);
 }
 
