@@ -792,7 +792,7 @@ function renderDash(){
   const activeC=DB.clients.filter(c=>c.status==='active').length;
   return `
   <div class="stats">
-    <div class="stat"><div class="stat-label">Outstanding Sales Orders</div><div class="stat-val" style="font-size:18px">${fmt(DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').reduce((s,d)=>s+d.amount,0))}</div><div class="stat-sub">${DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').length} of ${DB.clientPOs.length} pending</div></div>
+    <div class="stat"><div class="stat-label">Outstanding Sales Orders</div><div class="stat-val" style="font-size:18px">${fmt(DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').reduce((s,d)=>s+toBase(d.amount||0,d.currency),0),CO.fxRates?.base||'SGD')}</div><div class="stat-sub">${DB.clientPOs.filter(d=>!d.status||d.status==='outstanding').length} of ${DB.clientPOs.length} pending · ${CO.fxRates?.base||'SGD'} equiv.</div></div>
     <div class="stat"><div class="stat-label">Invoiced (This Month)</div>
     ${(()=>{
       const now=new Date();
@@ -837,7 +837,7 @@ function renderDash(){
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.date}</td>
-      <td>${fmt(d.amount)}</td>
+      <td>${fmt(d.amount,d.currency)}</td>
       <td><span class="badge b-${d.status||'outstanding'}">${d.status||'outstanding'}</span></td>
       <td><button class="alink" onclick="fromCPOInv('${d.id}')" style="color:var(--success)">→ Invoice</button></td>
     </tr>`).join('')}
@@ -1103,7 +1103,7 @@ function renderCPO(){
     <tbody>${DB.clientPOs.map(d=>`<tr>
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
-      <td>${cName(d.clientId)}</td><td>${d.date}</td><td>${fmt(d.amount)}</td>
+      <td>${cName(d.clientId)}</td><td>${d.date}</td><td>${fmt(d.amount,d.currency)}</td>
       <td style="font-size:12px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.items}</td>
       <td><span class="badge b-${d.status||'outstanding'}">${d.status||'outstanding'}</span></td>
       <td style="white-space:nowrap;display:flex;gap:8px;align-items:center">
