@@ -77,13 +77,14 @@ tbody tr:hover td{background:var(--card2)}
    Narrow columns get a fixed px width; Client absorbs the remaining space; Action gets a generous
    fixed width so its buttons never wrap onto a second line. */
 .dash-tbl{table-layout:fixed}
-.dash-tbl th:nth-child(1),.dash-tbl td:nth-child(1){width:130px}
-.dash-tbl th:nth-child(2),.dash-tbl td:nth-child(2){width:110px}
-.dash-tbl th:nth-child(4),.dash-tbl td:nth-child(4){width:100px}
-.dash-tbl th:nth-child(5),.dash-tbl td:nth-child(5){width:120px}
-.dash-tbl th:nth-child(6),.dash-tbl td:nth-child(6){width:100px}
-.dash-tbl th:last-child,.dash-tbl td:last-child{width:270px}
-.dash-tbl-do th:nth-child(7),.dash-tbl-do td:nth-child(7){width:110px}
+.dash-tbl th:nth-child(1),.dash-tbl td:nth-child(1){width:115px}
+.dash-tbl th:nth-child(2),.dash-tbl td:nth-child(2){width:90px}
+.dash-tbl th:nth-child(4),.dash-tbl td:nth-child(4){width:90px}
+.dash-tbl th:nth-child(5),.dash-tbl td:nth-child(5){width:100px}
+.dash-tbl th:nth-child(6),.dash-tbl td:nth-child(6){width:80px}
+.dash-tbl th:last-child,.dash-tbl td:last-child{width:230px}
+.dash-tbl-do th:nth-child(7),.dash-tbl-do td:nth-child(7){width:90px}
+.dash-tbl-do th:last-child,.dash-tbl-do td:last-child{width:150px}
 .dash-tbl td:not(.dash-acts){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dash-acts{white-space:nowrap;display:flex;gap:8px;align-items:center}
 
@@ -2015,7 +2016,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;color:#555;font-size:11px">${FORM.notes||''}</td>
-              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a">Sub-Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a;white-space:nowrap">Sub-Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;text-align:center;font-weight:600">${sub.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2031,7 +2032,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr style="background:#f5f5f5">
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd"></td>
-              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700">Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700;white-space:nowrap">Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:7px 8px;text-align:center;font-weight:700">${tot.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2135,7 +2136,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;color:#555;font-size:11px">${FORM.notes||''}</td>
-              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a">Sub-Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a;white-space:nowrap">Sub-Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;text-align:center;font-weight:600">${sub.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2149,7 +2150,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr style="background:#f5f5f5">
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd"></td>
-              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700">Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700;white-space:nowrap">Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:7px 8px;text-align:center;font-weight:700">${tot.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2200,13 +2201,17 @@ function renderPreview(label,cur,sub,gst,tot,party){
       </div>
 
       <!-- ② META ROW -->
-      <div style="background:#f7f8fa;border-bottom:1px solid #ddd;padding:10px 24px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px 24px">
-        <span><strong>Invoice No :</strong> ${num}</span>
-        <span><strong>Date :</strong> ${dateStr}</span>
-        <span><strong>Delivery Order No :</strong> ${FORM.doRef||'—'}</span>
-        <span><strong>Purchase Order No :</strong> ${FORM.ref||'—'}</span>
-        <span><strong>Our Reference :</strong> ${FORM.ourRef||'—'}</span>
-        <span><strong>Payment Term :</strong> ${FORM.terms||'30 Days'}</span>
+      <div style="background:#f7f8fa;border-bottom:1px solid #ddd;padding:10px 24px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:2px 24px">
+        <table style="border-collapse:collapse;width:100%"><tbody>
+          <tr><td style="color:#555;padding:2px 0;width:110px;white-space:nowrap">Invoice No</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0;font-weight:700">${num}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;white-space:nowrap">Delivery Order No</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0">${FORM.doRef||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;white-space:nowrap">Our Reference</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0">${FORM.ourRef||'—'}</td></tr>
+        </tbody></table>
+        <table style="border-collapse:collapse;width:100%"><tbody>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Date</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${dateStr}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Purchase Order No</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${FORM.ref||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Payment Term</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${FORM.terms||'30 Days'}</td></tr>
+        </tbody></table>
       </div>
 
       <!-- ③ BILLING / DELIVERY ADDRESS -->
@@ -2247,7 +2252,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;color:#555;font-size:11px">Transport : ${FORM.transport||'—'}</td>
-              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a">Sub-Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a;white-space:nowrap">Sub-Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;text-align:center;font-weight:600">${sub.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2261,7 +2266,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr style="background:#f5f5f5">
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd"></td>
-              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700">Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700;white-space:nowrap">Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:7px 8px;text-align:center;font-weight:700">${tot.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2272,11 +2277,12 @@ function renderPreview(label,cur,sub,gst,tot,party){
       <!-- ⑤ BANK DETAILS -->
       ${bank?`<div style="padding:14px 24px 10px;font-size:12px;border-top:1px solid #eee;margin-top:12px">
         <table style="border-collapse:collapse;font-size:12px">
-          <tr><td style="color:#555;padding:2px 0;padding-right:12px;white-space:nowrap">Account Name :</td><td style="font-weight:600;padding:2px 0">${bank.accName}</td></tr>
-          <tr><td style="color:#555;padding:2px 0">Account No :</td><td style="padding:2px 0">${bank.accNo}</td></tr>
-          <tr><td style="color:#555;padding:2px 0">Bank Name :</td><td style="padding:2px 0">${bank.bank}</td></tr>
-          ${bank.branch?`<tr><td style="color:#555;padding:2px 0">Address :</td><td style="padding:2px 0">${bank.branch}</td></tr>`:''}
-          <tr><td style="color:#555;padding:2px 0">Swift Code :</td><td style="padding:2px 0">${bank.swift}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;width:100px;white-space:nowrap;text-align:right">Account Name :</td><td style="font-weight:600;padding:2px 0;padding-left:8px">${bank.accName}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Account No :</td><td style="padding:2px 0;padding-left:8px">${bank.accNo}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Currency :</td><td style="padding:2px 0;padding-left:8px">${bank.currency||CO.currency}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Bank Name :</td><td style="padding:2px 0;padding-left:8px">${bank.bank}</td></tr>
+          ${bank.branch?`<tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Address :</td><td style="padding:2px 0;padding-left:8px">${bank.branch}</td></tr>`:''}
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Swift Code :</td><td style="padding:2px 0;padding-left:8px">${bank.swift}</td></tr>
         </table>
       </div>`:''}
 
@@ -2321,13 +2327,17 @@ function renderPreview(label,cur,sub,gst,tot,party){
       </div>
 
       <!-- ② META ROW -->
-      <div style="background:#f7f8fa;border-bottom:1px solid #ddd;padding:10px 24px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px 24px">
-        <span><strong>Delivery Order No :</strong> ${num}</span>
-        <span><strong>Date :</strong> ${dateStr}</span>
-        <span><strong>Invoice No :</strong> ${FORM.invRef||FORM.ref||'—'}</span>
-        <span><strong>Purchase Order No :</strong> ${FORM.poRef||'—'}</span>
-        <span><strong>Our Reference :</strong> ${FORM.ourRef||'—'}</span>
-        <span><strong>Payment Term :</strong> ${FORM.terms||'30 Days'}</span>
+      <div style="background:#f7f8fa;border-bottom:1px solid #ddd;padding:10px 24px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:2px 24px">
+        <table style="border-collapse:collapse;width:100%"><tbody>
+          <tr><td style="color:#555;padding:2px 0;width:110px;white-space:nowrap">Delivery Order No</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0;font-weight:700">${num}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;white-space:nowrap">Invoice No</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0">${FORM.invRef||FORM.ref||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;white-space:nowrap">Our Reference</td><td style="padding:2px 4px 2px 0">:</td><td style="padding:2px 0">${FORM.ourRef||'—'}</td></tr>
+        </tbody></table>
+        <table style="border-collapse:collapse;width:100%"><tbody>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Date</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${dateStr}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Purchase Order No</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${FORM.poRef||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Payment Term</td><td style="padding:2px 4px 2px 8px">:</td><td style="padding:2px 0">${FORM.terms||'30 Days'}</td></tr>
+        </tbody></table>
       </div>
 
       <!-- ③ BILLING / DELIVERY ADDRESS -->
@@ -2460,7 +2470,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;color:#555;font-size:11px">Transport : ${FORM.transport||'—'}</td>
-              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a">Sub-Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a;white-space:nowrap">Sub-Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:6px 8px;text-align:center;font-weight:600;color:#1a1a1a">${sub.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2476,7 +2486,7 @@ function renderPreview(label,cur,sub,gst,tot,party){
             <tr style="background:#f5f5f5">
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd"></td>
-              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700;color:#1a1a1a">Total (${cur})</td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700;color:#1a1a1a;white-space:nowrap">Total (${cur})</td>
               <td style="border:1px solid #ddd"></td>
               <td style="border:1px solid #ddd;padding:7px 8px;text-align:center;font-weight:700;color:#1a1a1a">${tot.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
             </tr>
@@ -2682,7 +2692,7 @@ function renderSupInvoiceForm(){
     <div class="frow c2">
       <div class="fgrp"><label>Supplier's invoice no. *</label><input id="f-supref" value="${FORM.supplierRef||''}" oninput="FORM.supplierRef=this.value" placeholder="Their invoice reference"/></div>
       <div class="fgrp"><label>Our PO reference</label>
-        <select id="f-ref" onchange="FORM.ref=this.value">${poOpts}</select>
+        <select id="f-ref" onchange="FORM.ref=this.value;const po=DB.pos.find(x=>x.id===this.value);if(po){FORM.supplierId=po.supplierId;FORM.currency=po.currency||CO.currency;FORM.terms=po.terms||FORM.terms;FORM.attn=po.attn||FORM.attn;FORM.notes=po.notes||FORM.notes;LINE_ITEMS=po.lines&&po.lines.length?po.lines.map(l=>({...l})):LINE_ITEMS;}render()">${poOpts}</select>
       </div>
     </div>
     <div class="frow c2">
@@ -2852,7 +2862,9 @@ function renderSupDOForm(){
     </div>
     <div class="frow c2">
       <div class="fgrp"><label>Our PO reference</label><select id="f-ref" onchange="FORM.ref=this.value">${poOpts}</select></div>
-      <div class="fgrp"><label>Linked purchase invoice</label><select id="f-sinvref" onchange="FORM.sinvRef=this.value">${siOpts}</select></div>
+      <div class="fgrp"><label>Linked purchase invoice</label>
+        <select id="f-sinvref" onchange="FORM.sinvRef=this.value;const si=DB.supInvoices.find(x=>x.id===this.value);if(si){FORM.supplierId=si.supplierId;FORM.attn=si.attn||FORM.attn;FORM.ref=si.ref||FORM.ref;FORM.items=si.lines&&si.lines.length?si.lines.map(l=>l.desc+(l.qty?' x'+l.qty:'')).join(', '):FORM.items;}render()">${siOpts}</select>
+      </div>
     </div>
     <div class="frow c2">
       <div class="fgrp"><label>Received by (staff name)</label><input id="f-recby" value="${FORM.receivedBy||''}" oninput="FORM.receivedBy=this.value" placeholder="Name of person who received goods"/></div>
