@@ -59,12 +59,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-danger{background:var(--danger-bg);color:var(--danger-tx);border-color:#fca5a5}
 
 /* STATS */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-left:3px solid var(--gold)}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.stat{flex:1 1 220px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-left:3px solid var(--gold);display:flex;flex-direction:column}
 .stat.red{border-left-color:var(--danger)}
 .stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .stat-val{font-size:22px;font-weight:700;line-height:1}
-.stat-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:auto;padding-top:5px}
 
 /* TABLE */
 .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px;box-shadow:var(--shadow)}
@@ -73,11 +73,24 @@ thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:upperc
 tbody td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--card2)}
+/* DASHBOARD: Quotations / Sales Orders / Invoices share identical column widths so they line up vertically.
+   Narrow columns get a fixed px width; Client absorbs the remaining space; Action gets a generous
+   fixed width so its buttons never wrap onto a second line. */
+.dash-tbl{table-layout:fixed}
+.dash-tbl th:nth-child(1),.dash-tbl td:nth-child(1){width:130px}
+.dash-tbl th:nth-child(2),.dash-tbl td:nth-child(2){width:110px}
+.dash-tbl th:nth-child(4),.dash-tbl td:nth-child(4){width:100px}
+.dash-tbl th:nth-child(5),.dash-tbl td:nth-child(5){width:120px}
+.dash-tbl th:nth-child(6),.dash-tbl td:nth-child(6){width:100px}
+.dash-tbl th:last-child,.dash-tbl td:last-child{width:270px}
+.dash-tbl-do th:nth-child(7),.dash-tbl-do td:nth-child(7){width:110px}
+.dash-tbl td:not(.dash-acts){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-acts{white-space:nowrap;display:flex;gap:8px;align-items:center}
 
 /* BADGES */
-.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.b-draft,.b-pending,.b-inactive{background:var(--warning-bg);color:var(--warning-tx)}
-.b-converted{background:#ede9fe;color:#5b21b6}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-draft,.b-pending,.b-inactive,.b-outstanding{background:var(--warning-bg);color:var(--warning-tx)}
+.b-converted,.b-invoiced{background:#ede9fe;color:#5b21b6}
 .b-sent,.b-issued{background:var(--accent-bg);color:var(--accent-tx)}
 .b-accepted,.b-paid,.b-active,.b-delivered{background:var(--success-bg);color:var(--success-tx)}
 .b-overdue,.b-cancelled{background:var(--danger-bg);color:var(--danger-tx)}
@@ -228,6 +241,7 @@ input[type=number]{-moz-appearance:textfield}
   .c3{grid-template-columns:1fr 1fr}
   .c4{grid-template-columns:1fr 1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
+  .stat{flex-basis:calc(50% - 6px)}
   .contact-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
   .prod-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
   .settings-layout{grid-template-columns:1fr}
@@ -250,6 +264,7 @@ input[type=number]{-moz-appearance:textfield}
   #content{padding:12px;overflow-y:visible;flex:none}
   /* Grids → single column */
   .stats{grid-template-columns:1fr 1fr;gap:8px}
+  .stat{flex-basis:100%}
   .c2,.c3,.c4{grid-template-columns:1fr}
   .contact-grid,.prod-grid{grid-template-columns:1fr}
   .settings-layout{grid-template-columns:1fr}
@@ -557,7 +572,7 @@ function defaultCo() {
     currency:'SGD', country:'Singapore',
     industry:'Industrial Solutions & Engineering',
     desc:'Specialist in rotating machines, electrical motors, drives and industrial engineering solutions.',
-    banks:[{id:'b1',bank:'DBS Bank Ltd',accName:'Macpro Solutions (SEA) Pte Ltd',accNo:'023-9-012345',swift:'DBSSSGSG',branch:'Tanjong Pagar Branch'}],
+    banks:[{id:'b1',bank:'DBS Bank Ltd',accName:'Macpro Solutions (SEA) Pte Ltd',accNo:'023-9-012345',swift:'DBSSSGSG',branch:'Tanjong Pagar Branch',currency:'SGD'}],
     prefix:{quotation:'Q',invoice:'MS-IV',po:'PO',do:'MS-DO',clientPO:'SO'},
     counter:{quotation:0,invoice:0,po:0,do:0,clientPO:0},
     counterMonth:'',  // tracks YYMM of last counter — resets when month changes
@@ -815,42 +830,52 @@ function renderDash(){
     </div>
   </div>
   <div class="sec-hdr"><h3>Quotations</h3><button class="alink" onclick="nav('quotation')">View all →</button></div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>QT No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
-    <tbody>${DB.quotations.filter(d=>d.status!=='converted').map(d=>`<tr>
+  <div class="tbl-wrap"><table class="dash-tbl">
+    <thead><tr><th>QT No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>${DB.quotations.map(d=>`<tr>
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.date}</td>
       <td>${fmt(d.amount,d.currency)}</td><td><span class="badge b-${d.status}">${d.status}</span></td>
-      <td style="white-space:nowrap;display:flex;gap:8px">
+      <td class="dash-acts">
         <button class="alink" onclick="openDocForm('quotation','${d.id}')">Edit</button>
+        ${d.status==='converted'?'':`
         <button class="alink" onclick="fromQTtoSO('${d.id}')"      style="color:var(--warning)">→ SO</button>
         <button class="alink" onclick="fromQTtoInvoice('${d.id}')" style="color:var(--success)">→ Invoice</button>
-        <button class="alink" onclick="fromQTtoDO('${d.id}')" style="color:var(--purple-tx)">→ DO</button>
+        <button class="alink" onclick="fromQTtoDO('${d.id}')" style="color:var(--purple-tx)">→ DO</button>`}
       </td>
     </tr>`).join('')}</tbody>
   </table></div>
   <div class="sec-hdr"><h3>Sales Orders</h3><button class="alink" onclick="nav('client-po')">View all →</button></div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>SO No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+  <div class="tbl-wrap"><table class="dash-tbl">
+    <thead><tr><th>SO No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>${DB.clientPOs.map(d=>`<tr>
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.date}</td>
       <td>${fmt(d.amount,d.currency)}</td>
       <td><span class="badge b-${d.status||'outstanding'}">${d.status||'outstanding'}</span></td>
-      <td><button class="alink" onclick="fromCPOInv('${d.id}')" style="color:var(--success)">→ Invoice</button></td>
+      <td class="dash-acts">
+        <button class="alink" onclick="openDocForm('client-po','${d.id}')">Edit</button>
+        <button class="alink" onclick="fromCPOInv('${d.id}')" style="color:var(--success)">→ Invoice</button>
+        <button class="alink" onclick="fromCPOtoDO('${d.id}')" style="color:var(--purple-tx)">→ DO</button>
+      </td>
     </tr>`).join('')}
     </tbody>
   </table></div>
   <div class="sec-hdr"><h3>Invoices</h3><button class="alink" onclick="nav('invoice')">View all →</button></div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>Invoice No.</th><th>Client Ref</th><th>Client</th><th>Due Date</th><th>Amount</th><th>Status</th></tr></thead>
+  <div class="tbl-wrap"><table class="dash-tbl dash-tbl-do">
+    <thead><tr><th>Invoice No.</th><th>Client Ref</th><th>Client</th><th>Due Date</th><th>Amount</th><th>Status</th><th>DO No.</th><th>Action</th></tr></thead>
     <tbody>${DB.invoices.map(d=>`<tr>
       <td class="mono">${d.id}</td>
       <td class="mono">${d.ref||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.due}</td>
       <td>${fmt(d.amount,d.currency)}</td><td><span class="badge b-${d.status}">${d.status}</span></td>
+      <td class="mono">${d.linkedDoId||'—'}</td>
+      <td class="dash-acts">
+        <button class="alink" onclick="openDocForm('invoice','${d.id}')">Edit</button>
+        <button class="alink" onclick="fromINVtoDO('${d.id}')" style="color:var(--purple-tx)">→ DO</button>
+      </td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -1099,12 +1124,11 @@ function renderCPO(){
     <span style="font-weight:700;font-size:15px">${fmt(outstanding)}</span>
   </div>`:''}
   <div class="tbl-wrap"><table>
-    <thead><tr><th>SO No.</th><th>Client Ref</th><th>Client</th><th>Date</th><th>Amount</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>SO No.</th><th>Quotation No.</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${DB.clientPOs.map(d=>`<tr>
       <td class="mono">${d.id}</td>
-      <td class="mono">${d.ref||'—'}</td>
+      <td class="mono">${d.srcQtId||'—'}</td>
       <td>${cName(d.clientId)}</td><td>${d.date}</td><td>${fmt(d.amount,d.currency)}</td>
-      <td style="font-size:12px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.items}</td>
       <td><span class="badge b-${d.status||'outstanding'}">${d.status||'outstanding'}</span></td>
       <td style="white-space:nowrap;display:flex;gap:8px;align-items:center">
         <button class="alink" onclick="openDocForm('client-po','${d.id}')">Edit</button>
@@ -1262,12 +1286,12 @@ function fromQTtoInvoice(qtId){
   LINE_ITEMS=qt.lines&&qt.lines.length?qt.lines.map(l=>({...l})):[{desc:'As per '+qtId,qty:1,unit:'lot',unitPrice:qt.amount}];
   FORM={
     clientId:qt.clientId, date:today(), due:addDays(today(),30),
-    ref:qtId, terms:qt.terms||cl.terms||'30 days',
+    ref:qt.ref||qtId, terms:qt.terms||cl.terms||'30 days',
     currency:qt.currency||CO.currency, notes:qt.notes||'', attn:qt.attn||cl.contact||'',
     valid:addDays(today(),30),
     docGstOn:qt.docGstOn, docGstRate:qt.docGstRate,
     billingAddr:'', deliveryAddr:'', deliveryAttn:'',
-    transport:'', ourRef:'', doRef:'', invRef:'', poRef:qtId,
+    transport:'', ourRef:'', doRef:'', invRef:'', poRef:qt.ref||'',
   };
   nav('invoice'); setTimeout(()=>{DOC_TYPE='invoice';EDIT_ID='new';render();},10);
 }
@@ -1279,12 +1303,13 @@ function fromQTtoDO(qtId){
   LINE_ITEMS=qt.lines&&qt.lines.length?qt.lines.map(l=>({...l})):[{desc:'As per '+qtId,qty:1,unit:'lot',unitPrice:0}];
   FORM={
     clientId:qt.clientId, date:today(),
-    ref:qtId, terms:qt.terms||cl.terms||'30 days',
+    ref:qt.ref||qtId, terms:qt.terms||cl.terms||'30 days',
     currency:qt.currency||CO.currency, notes:qt.notes||'', attn:qt.attn||cl.contact||'',
     valid:addDays(today(),30), due:addDays(today(),30),
     docGstOn:undefined, docGstRate:undefined,
     billingAddr:'', deliveryAddr:'', deliveryAttn:'',
-    transport:'', ourRef:'', doRef:'', invRef:'', poRef:qtId,
+    transport:'', ourRef:'', doRef:'', invRef:'', poRef:qt.ref||'',
+    srcType:'quotation', srcId:qtId,
   };
   nav('do'); setTimeout(()=>{DOC_TYPE='do';EDIT_ID='new';render();},10);
 }
@@ -1296,13 +1321,13 @@ function fromQTtoSO(qtId){
   LINE_ITEMS=qt.lines&&qt.lines.length?qt.lines.map(l=>({...l})):[{desc:'As per '+qtId,qty:1,unit:'lot',unitPrice:qt.amount||0}];
   FORM={
     clientId:qt.clientId, date:today(),
-    ref:qtId, terms:qt.terms||cl.terms||'30 days',
+    ref:qt.ref||qtId, terms:qt.terms||cl.terms||'30 days',
     currency:qt.currency||CO.currency, notes:qt.notes||'', attn:qt.attn||cl.contact||'',
     valid:addDays(today(),30), due:addDays(today(),30),
     docGstOn:qt.docGstOn, docGstRate:qt.docGstRate,
     billingAddr:'', deliveryAddr:'', deliveryAttn:'',
-    transport:'', ourRef:'', doRef:'', invRef:'', poRef:'',
-    soStatus:'outstanding',
+    transport:'', ourRef:'', doRef:'', invRef:'', poRef:qt.ref||'',
+    soStatus:'outstanding', srcQtId:qtId,
   };
   // Mark quotation as converted
   qt.status='converted';
@@ -1319,13 +1344,14 @@ function fromINVtoDO(invId){
     : [{desc:'As per invoice '+invId,qty:1,unit:'lot',unitPrice:0}];
   FORM={
     clientId:inv.clientId, date:today(),
-    ref:invId, terms:inv.terms||cl.terms||'30 days',
+    ref:inv.ref||invId, terms:inv.terms||cl.terms||'30 days',
     currency:inv.currency||CO.currency, notes:inv.notes||'', attn:inv.attn||cl.contact||'',
     valid:addDays(today(),30), due:addDays(today(),30),
     docGstOn:undefined, docGstRate:undefined,
     billingAddr:inv.billingAddr||'', deliveryAddr:inv.deliveryAddr||'',
     deliveryAttn:inv.deliveryAttn||'', transport:inv.transport||'',
     ourRef:inv.ourRef||'', doRef:'', invRef:invId, poRef:inv.poRef||inv.ref||'',
+    srcType:'invoice', srcId:invId,
   };
   nav('do'); setTimeout(()=>{DOC_TYPE='do';EDIT_ID='new';render();},10);
 }
@@ -1363,9 +1389,11 @@ function openDocForm(type,id){
       doRef:rec.doRef||'',
       invRef:rec.invRef||'',
       poRef:rec.poRef||'',
+      bankId:rec.bankId||'',
       ourRef:rec.ourRef||'',
       transport:rec.transport||'',
       soStatus:rec.status||'outstanding',      // Quotation-specific
+      srcQtId:rec.srcQtId||'',
       pic:rec.pic||'', picTel:rec.picTel||'',
       validityText:rec.validityText||'30 Days',
       deliveryTerm:rec.deliveryTerm||'Ex-Singapore',
@@ -1389,10 +1417,29 @@ function fromCPO(cpoId){
 function fromCPOInv(cpoId){
   const cpo=DB.clientPOs.find(d=>d.id===cpoId); if(!cpo) return;
   DOC_TYPE='invoice'; EDIT_ID='new'; DOC_TAB='edit';
-  LINE_ITEMS=[{desc:cpo.items,qty:1,unit:'lot',unitPrice:cpo.amount}];
+  LINE_ITEMS=cpo.lines&&cpo.lines.length?cpo.lines.map(l=>({...l})):[{desc:cpo.items,qty:1,unit:'lot',unitPrice:cpo.amount}];
   const cl=DB.clients.find(x=>x.id===cpo.clientId)||{};
-  FORM={clientId:cpo.clientId,date:today(),ref:cpo.ref,terms:cl.terms||'30 days',currency:CO.currency,notes:'',attn:cl.contact||'',valid:addDays(today(),30),due:addDays(today(),30),docGstOn:undefined,docGstRate:undefined};
+  FORM={clientId:cpo.clientId,date:today(),ref:cpo.ref,terms:cpo.terms||cl.terms||'30 days',currency:cpo.currency||CO.currency,notes:cpo.notes||'',attn:cpo.attn||cl.contact||'',valid:addDays(today(),30),due:addDays(today(),30),docGstOn:undefined,docGstRate:undefined};
+  cpo.status='invoiced';
+  saveDB();
   nav('invoice'); setTimeout(()=>{DOC_TYPE='invoice';EDIT_ID='new';render();},10);
+}
+function fromCPOtoDO(cpoId){
+  const cpo=DB.clientPOs.find(d=>d.id===cpoId); if(!cpo) return;
+  DOC_TYPE='do'; EDIT_ID='new'; DOC_TAB='edit';
+  const cl=DB.clients.find(x=>x.id===cpo.clientId)||{};
+  LINE_ITEMS=cpo.lines&&cpo.lines.length?cpo.lines.map(l=>({...l})):[{desc:cpo.items||('As per '+cpoId),qty:1,unit:'lot',unitPrice:0}];
+  FORM={
+    clientId:cpo.clientId, date:today(),
+    ref:cpo.ref||cpoId, terms:cpo.terms||cl.terms||'30 days',
+    currency:cpo.currency||CO.currency, notes:cpo.notes||'', attn:cpo.attn||cl.contact||'',
+    valid:addDays(today(),30), due:addDays(today(),30),
+    docGstOn:undefined, docGstRate:undefined,
+    billingAddr:'', deliveryAddr:'', deliveryAttn:'',
+    transport:'', ourRef:'', doRef:'', invRef:'', poRef:cpo.ref||'',
+    srcType:'client-po', srcId:cpoId,
+  };
+  nav('do'); setTimeout(()=>{DOC_TYPE='do';EDIT_ID='new';render();},10);
 }
 function fromClient(cid){
   const cl=DB.clients.find(x=>x.id===cid)||{};
@@ -1482,7 +1529,7 @@ function renderDocForm(){
       <div class="fgrp"><label>Date</label><input type="date" id="f-date" value="${FORM.date||today()}" oninput="FORM.date=this.value"/></div>
       <div class="fgrp"><label>Their ref / PO no.</label><input id="f-ref" value="${FORM.ref||''}" oninput="FORM.ref=this.value"/></div>
       <div class="fgrp"><label>Currency</label>
-        <select id="f-cur" onchange="FORM.currency=this.value;DOC_TAB==='preview'?render():recalc()">
+        <select id="f-cur" onchange="FORM.currency=this.value;(DOC_TAB==='preview'||DOC_TYPE==='invoice')?render():recalc()">
           ${['SGD','MYR','USD','EUR','GBP','AUD','JPY','CNY'].map(c=>`<option ${cur===c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
@@ -1547,6 +1594,13 @@ function renderDocForm(){
         <div class="fgrp"><label>Client PO no.</label>
           <input id="f-poref" value="${FORM.poRef||FORM.ref||''}" oninput="FORM.poRef=this.value" placeholder="Client purchase order no."/>
         </div>
+        ${DOC_TYPE==='invoice'?`<div class="fgrp"><label>Bank account (for payment)</label>
+          <select id="f-bankid" onchange="FORM.bankId=this.value;render()">
+            <option value="">Auto (match invoice currency)</option>
+            ${CO.banks.map(b=>`<option value="${b.id}" ${FORM.bankId===b.id?'selected':''}>${b.bank} — ${b.accNo}${b.currency?` (${b.currency})`:''}</option>`).join('')}
+          </select>
+          ${(()=>{const pb=pickBank(FORM.currency||CO.currency);return pb?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${FORM.bankId?'Selected':'Auto-selected'}: ${pb.bank} — ${pb.accNo} (${pb.currency||CO.currency})</div>`:'<div style="font-size:11px;color:var(--danger)">No bank account set up — add one in Settings</div>';})()}
+        </div>`:''}
       </div>
     </div>`:''}
     ${DOC_TYPE==='client-po'?`
@@ -1835,17 +1889,37 @@ function saveDoc(){
     doRef:       document.getElementById('f-doref')        ? document.getElementById('f-doref').value        : FORM.doRef||'',
     invRef:      document.getElementById('f-invref')       ? document.getElementById('f-invref').value       : FORM.invRef||'',
     poRef:       document.getElementById('f-poref')        ? document.getElementById('f-poref').value        : FORM.poRef||FORM.ref||'',
+    bankId:      document.getElementById('f-bankid')       ? document.getElementById('f-bankid').value       : FORM.bankId||'',
   };
   if(isC)  rec.clientId=FORM.clientId;
   else     rec.supplierId=FORM.supplierId;
-  if(DOC_TYPE==='quotation'){rec.valid=validV;rec.status='draft';}
-  if(DOC_TYPE==='invoice')  {rec.due=validV;rec.status='pending';}
-  if(DOC_TYPE==='po')       {rec.status='pending';}
+  const existingRec=isNew?null:DB[key].find(x=>x.id===EDIT_ID);
+  // Carry forward fields that are only ever set outside this form (DO links, payment records)
+  // so that editing a document afterward never silently erases them.
+  if(existingRec){
+    if(existingRec.linkedDoId!==undefined) rec.linkedDoId=existingRec.linkedDoId;
+    if(existingRec.srcQtId!==undefined) rec.srcQtId=existingRec.srcQtId;
+    if(existingRec.status==='paid'){
+      rec.paidDate=existingRec.paidDate; rec.paidRef=existingRec.paidRef;
+      rec.paidMethod=existingRec.paidMethod; rec.paidAmount=existingRec.paidAmount;
+      rec.paidNote=existingRec.paidNote;
+    }
+  }
+  if(DOC_TYPE==='quotation'){rec.valid=validV;rec.status=existingRec?existingRec.status:'draft';}
+  if(DOC_TYPE==='invoice')  {rec.due=validV;rec.status=existingRec?existingRec.status:'pending';}
+  if(DOC_TYPE==='po')       {rec.status=existingRec?existingRec.status:'pending';}
   if(DOC_TYPE==='do')       {rec.status='issued';rec.items=LINE_ITEMS.map(l=>l.desc).join(', ');}
+  if(DOC_TYPE==='do' && isNew && FORM.srcType && FORM.srcId){
+    const srcMap={quotation:DB.quotations,'client-po':DB.clientPOs,invoice:DB.invoices};
+    const arr=srcMap[FORM.srcType];
+    const src=arr&&arr.find(x=>x.id===FORM.srcId);
+    if(src) src.linkedDoId=docId;
+  }
   if(DOC_TYPE==='client-po'){
     const soSel=document.getElementById('f-so-status');
     rec.status=soSel?soSel.value:(FORM.soStatus||'outstanding');
     rec.items=LINE_ITEMS.map(l=>l.desc).filter(Boolean).join(', ')||rec.items||'';
+    if(isNew && FORM.srcQtId) rec.srcQtId=FORM.srcQtId;
   }
   if(isNew) DB[key].push(rec);
   else { const idx=DB[key].findIndex(x=>x.id===EDIT_ID); if(idx>=0)DB[key][idx]=rec; }
@@ -1892,20 +1966,21 @@ function renderPreview(label,cur,sub,gst,tot,party){
         <!-- Left: client info -->
         <div style="padding:14px 24px;border-right:1px solid #ddd">
           <table style="font-size:12px;border-collapse:collapse;width:100%">
-            <tr><td style="color:#555;padding:2px 0;width:60px;white-space:nowrap">To :</td><td style="font-weight:700;padding:2px 0">${party?party.name:''}</td></tr>
-            ${party&&party.addr?`<tr><td></td><td style="padding:2px 0;color:#333;white-space:pre-line">${party.addr}</td></tr>`:''}
-            ${party&&party.tel?`<tr><td style="color:#555;padding:2px 0">Tel :</td><td style="padding:2px 0">${party.tel}</td></tr>`:''}
-            <tr><td style="color:#555;padding:2px 0;padding-top:6px">Attn :</td><td style="padding:2px 0;padding-top:6px;font-weight:600">${FORM.attn||''}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;width:60px;white-space:nowrap;text-align:right">To :</td><td style="font-weight:700;padding:2px 0;padding-left:8px">${party?party.name:''}</td></tr>
+            ${party&&party.addr?`<tr><td></td><td style="padding:2px 0;padding-left:8px;color:#333;white-space:pre-line">${party.addr}</td></tr>`:''}
+            ${party&&party.tel?`<tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Tel :</td><td style="padding:2px 0;padding-left:8px">${party.tel}</td></tr>`:''}
+            <tr><td style="color:#555;padding:2px 0;padding-top:6px;text-align:right;white-space:nowrap">Attn :</td><td style="padding:2px 0;padding-top:6px;padding-left:8px;font-weight:600">${FORM.attn||''}</td></tr>
           </table>
         </div>
         <!-- Right: quotation meta -->
         <div style="padding:14px 24px;min-width:220px">
           <table style="font-size:12px;border-collapse:collapse;width:100%">
-            <tr><td style="color:#555;padding:2px 0;white-space:nowrap;padding-right:10px">Quotation No :</td><td style="padding:2px 0;font-weight:700;color:${CO.brand}">${num}</td></tr>
-            <tr><td style="color:#555;padding:2px 0">Date :</td><td style="padding:2px 0">${dateStr}</td></tr>
-            <tr><td style="color:#555;padding:2px 0">PIC :</td><td style="padding:2px 0">${FORM.pic||''}</td></tr>
-            <tr><td style="color:#555;padding:2px 0">Contact No :</td><td style="padding:2px 0">${FORM.picTel||'—'}</td></tr>
-            <tr><td style="color:#555;padding:2px 0">Page No :</td><td style="padding:2px 0">1/1</td></tr>
+            <tr><td style="color:#555;padding:2px 0;white-space:nowrap;width:105px;text-align:right">Quotation No :</td><td style="padding:2px 0;padding-left:10px;font-weight:700;color:${CO.brand}">${num}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Date :</td><td style="padding:2px 0;padding-left:10px">${dateStr}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">PIC :</td><td style="padding:2px 0;padding-left:10px">${FORM.pic||''}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Contact No :</td><td style="padding:2px 0;padding-left:10px">${FORM.picTel||'—'}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Client Ref :</td><td style="padding:2px 0;padding-left:10px">${FORM.ref||'—'}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Page No :</td><td style="padding:2px 0;padding-left:10px">1/1</td></tr>
           </table>
         </div>
       </div>
@@ -1967,11 +2042,11 @@ function renderPreview(label,cur,sub,gst,tot,party){
       <!-- ⑤ TERMS BLOCK -->
       <div style="padding:14px 24px 10px;font-size:12px">
         <table style="border-collapse:collapse;width:100%">
-          <tr><td style="color:#555;padding:3px 0;width:120px;white-space:nowrap;vertical-align:top">Price :</td><td style="padding:3px 0">Prices are in ${cur} Nett and subject to GST if applicable</td></tr>
-          <tr><td style="color:#555;padding:3px 0;vertical-align:top">Delivery :</td><td style="padding:3px 0">${FORM.delivery||'Delivery stated above are subject to factory final confirmation and excluding holidays'}</td></tr>
-          <tr><td style="color:#555;padding:3px 0;vertical-align:top">Delivery term :</td><td style="padding:3px 0">${FORM.deliveryTerm||'Ex-Singapore'}</td></tr>
-          <tr><td style="color:#555;padding:3px 0;vertical-align:top">Payment term :</td><td style="padding:3px 0">${FORM.terms||'30 days'}</td></tr>
-          <tr><td style="color:#555;padding:3px 0;vertical-align:top">Validity :</td><td style="padding:3px 0">${FORM.validityText||'30 Days'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;width:120px;white-space:nowrap;vertical-align:top;text-align:right">Price :</td><td style="padding:3px 0;padding-left:8px">Prices are in ${cur} Nett and subject to GST if applicable</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Delivery :</td><td style="padding:3px 0;padding-left:8px">${FORM.delivery||'Delivery stated above are subject to factory final confirmation and excluding holidays'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Delivery term :</td><td style="padding:3px 0;padding-left:8px">${FORM.deliveryTerm||'Ex-Singapore'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Payment term :</td><td style="padding:3px 0;padding-left:8px">${FORM.terms||'30 days'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Validity :</td><td style="padding:3px 0;padding-left:8px">${FORM.validityText||'30 Days'}</td></tr>
         </table>
       </div>
 
@@ -1988,9 +2063,119 @@ function renderPreview(label,cur,sub,gst,tot,party){
     </div>`;
   }
 
+  // ── SALES ORDER: reference layout ─────────────────────────────────────────
+  if(DOC_TYPE==='client-po'){
+    return `
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn" onclick="DOC_TAB='edit';render()">← Back to edit</button>
+      <button class="btn" onclick="printDoc('print')">🖨 Print</button><button class="btn btn-navy" onclick="printDoc('pdf')">⬇ Download PDF</button>
+    </div>
+    <div class="preview-doc" id="print-area" style="padding:0;max-width:740px;font-family:Arial,sans-serif;font-size:12px">
+
+      <!-- ① HEADER BAR -->
+      <div style="background:${CO.brand};padding:14px 24px 12px;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="color:#fff;font-size:16px;font-weight:700;letter-spacing:.3px">${CO.name}</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px;margin-top:4px;white-space:pre-line">${CO.addr}</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px;margin-top:2px">Tel : ${CO.tel}</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">Email : ${CO.email}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="color:${CO.accent};font-size:22px;font-weight:700;letter-spacing:1px">SALES ORDER</div>
+          <div style="color:rgba(255,255,255,.7);font-size:10px;margin-top:6px">Company Reg No : ${CO.uen}</div>
+          <div style="color:rgba(255,255,255,.7);font-size:10px">GST Reg No : ${CO.gst}</div>
+        </div>
+      </div>
+
+      <!-- ② TO / SO DETAILS BLOCK -->
+      <div style="display:grid;grid-template-columns:1fr auto;gap:0;border-bottom:1px solid #ddd">
+        <!-- Left: client info -->
+        <div style="padding:14px 24px;border-right:1px solid #ddd">
+          <table style="font-size:12px;border-collapse:collapse;width:100%">
+            <tr><td style="color:#555;padding:2px 0;width:60px;white-space:nowrap;text-align:right">To :</td><td style="font-weight:700;padding:2px 0;padding-left:8px">${party?party.name:''}</td></tr>
+            ${party&&party.addr?`<tr><td></td><td style="padding:2px 0;padding-left:8px;color:#333;white-space:pre-line">${party.addr}</td></tr>`:''}
+            ${party&&party.tel?`<tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Tel :</td><td style="padding:2px 0;padding-left:8px">${party.tel}</td></tr>`:''}
+            <tr><td style="color:#555;padding:2px 0;padding-top:6px;text-align:right;white-space:nowrap">Attn :</td><td style="padding:2px 0;padding-top:6px;padding-left:8px;font-weight:600">${FORM.attn||''}</td></tr>
+          </table>
+        </div>
+        <!-- Right: SO meta -->
+        <div style="padding:14px 24px;min-width:220px">
+          <table style="font-size:12px;border-collapse:collapse;width:100%">
+            <tr><td style="color:#555;padding:2px 0;white-space:nowrap;width:110px;text-align:right">SO No :</td><td style="padding:2px 0;padding-left:10px;font-weight:700;color:${CO.brand}">${num}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Date :</td><td style="padding:2px 0;padding-left:10px">${dateStr}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">PIC :</td><td style="padding:2px 0;padding-left:10px">${FORM.pic||''}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Contact No :</td><td style="padding:2px 0;padding-left:10px">${FORM.picTel||'—'}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">PO No :</td><td style="padding:2px 0;padding-left:10px">${FORM.ref||'—'}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Quotation No :</td><td style="padding:2px 0;padding-left:10px">${FORM.srcQtId||'—'}</td></tr>
+            <tr><td style="color:#555;padding:2px 0;text-align:right;white-space:nowrap">Page No :</td><td style="padding:2px 0;padding-left:10px">1/1</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ③ LINE ITEMS TABLE -->
+      <div style="padding:0 24px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:12px">
+          <thead>
+            <tr style="background:#f0f4ff">
+              <th style="color:#1e3a5f;font-weight:700;font-size:12px;padding:9px 8px;text-align:center;width:5%;border:1px solid #c7d7f4">No</th>
+              <th style="color:#1e3a5f;font-weight:700;font-size:12px;padding:9px 8px;text-align:left;border:1px solid #c7d7f4">Description</th>
+              <th style="color:#1e3a5f;font-weight:700;font-size:12px;padding:9px 8px;text-align:center;width:14%;border:1px solid #c7d7f4">Unit Price</th>
+              <th style="color:#1e3a5f;font-weight:700;font-size:12px;padding:9px 8px;text-align:center;width:6%;border:1px solid #c7d7f4">Qty</th>
+              <th style="color:#1e3a5f;font-weight:700;font-size:12px;padding:9px 8px;text-align:center;width:14%;border:1px solid #c7d7f4">Total (${cur})</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${LINE_ITEMS.map((l,i)=>`<tr>
+              <td style="padding:7px 8px;text-align:center;border:1px solid #ddd;vertical-align:top;color:#1a1a1a">${i+1}</td>
+              <td style="padding:7px 8px;border:1px solid #ddd;white-space:pre-line;color:#1a1a1a">${l.desc||'—'}</td>
+              <td style="padding:7px 8px;text-align:center;border:1px solid #ddd;vertical-align:top;color:#1a1a1a">${l.unitPrice.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+              <td style="padding:7px 8px;text-align:center;border:1px solid #ddd;vertical-align:top;color:#1a1a1a">${l.qty}</td>
+              <td style="padding:7px 8px;text-align:center;border:1px solid #ddd;vertical-align:top;color:#1a1a1a">${(l.qty*l.unitPrice).toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+            </tr>`).join('')}
+            <tr>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd;padding:6px 8px;color:#555;font-size:11px">${FORM.notes||''}</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;font-weight:600;color:#1a1a1a">Sub-Total (${cur})</td>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:center;font-weight:600">${sub.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+            </tr>
+            <tr>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:right;color:#333">GST</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:center">${docGstOn()?docGstRate()+'%':'N/A'}</td>
+              <td style="border:1px solid #ddd;padding:6px 8px;text-align:center">${docGstOn()?gst.toLocaleString('en-SG',{minimumFractionDigits:2}):'—'}</td>
+            </tr>
+            <tr style="background:#f5f5f5">
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:right;font-weight:700">Total (${cur})</td>
+              <td style="border:1px solid #ddd"></td>
+              <td style="border:1px solid #ddd;padding:7px 8px;text-align:center;font-weight:700">${tot.toLocaleString('en-SG',{minimumFractionDigits:2})}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ④ TERMS BLOCK -->
+      <div style="padding:14px 24px 10px;font-size:12px">
+        <table style="border-collapse:collapse;width:100%">
+          <tr><td style="color:#555;padding:3px 0;width:120px;white-space:nowrap;vertical-align:top;text-align:right">Delivery :</td><td style="padding:3px 0;padding-left:8px">${FORM.delivery||'Delivery stated above are subject to factory final confirmation and excluding holidays'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Delivery term :</td><td style="padding:3px 0;padding-left:8px">${FORM.deliveryTerm||'Ex-Singapore'}</td></tr>
+          <tr><td style="color:#555;padding:3px 0;vertical-align:top;text-align:right;white-space:nowrap">Payment term :</td><td style="padding:3px 0;padding-left:8px">${FORM.terms||'30 days'}</td></tr>
+        </table>
+      </div>
+
+      <!-- ⑤ DISCLAIMER -->
+      <div style="background:#f7f7f7;border-top:1px solid #ddd;padding:8px 24px;font-size:10px;color:#888;text-align:center;letter-spacing:.3px">
+        THIS FORM IS COMPUTER GENERATED AND DOES NOT REQUIRE A SIGNATURE
+      </div>
+    </div>`;
+  }
+
   // ── INVOICE: reference layout ─────────────────────────────────────────────
   if(DOC_TYPE==='invoice'){
-    const bank = CO.banks[0];
+    const bank = pickBank(cur);
     const dateStr = FORM.date ? new Date(FORM.date).toLocaleDateString('en-SG',{day:'2-digit',month:'2-digit',year:'numeric'}) : today();
     return `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
@@ -2875,8 +3060,9 @@ function renderSettingsPanel(){
   if(S_TAB==='banking') return `
     <div class="panel"><h4>Bank accounts</h4>
       ${CO.banks.map((b,i)=>`<div class="bank-item">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><strong>${b.bank||'New account'}</strong><button class="btn btn-danger btn-sm" onclick="removeBank('${b.id}')">Remove</button></div>
-        <div class="frow c2"><div class="fgrp"><label>Bank name</label><input id="bk-bank-${i}" value="${b.bank}"/></div><div class="fgrp"><label>Account name</label><input id="bk-an-${i}" value="${b.accName}"/></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><strong>${b.bank||'New account'}${b.currency?` (${b.currency})`:''}</strong><button class="btn btn-danger btn-sm" onclick="removeBank('${b.id}')">Remove</button></div>
+        <div class="frow c3"><div class="fgrp"><label>Bank name</label><input id="bk-bank-${i}" value="${b.bank}"/></div><div class="fgrp"><label>Account name</label><input id="bk-an-${i}" value="${b.accName}"/></div>
+        <div class="fgrp"><label>Currency</label><select id="bk-cur-${i}">${['SGD','MYR','USD','EUR','GBP','AUD','JPY','CNY'].map(c=>`<option ${(b.currency||CO.currency)===c?'selected':''}>${c}</option>`).join('')}</select></div></div>
         <div class="frow c3"><div class="fgrp"><label>Account number</label><input id="bk-no-${i}" value="${b.accNo}"/></div><div class="fgrp"><label>Swift / BIC</label><input id="bk-sw-${i}" value="${b.swift||''}"/></div><div class="fgrp"><label>Branch</label><input id="bk-br-${i}" value="${b.branch||''}"/></div></div>
         <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn btn-sm" onclick="saveBank(${i},'${b.id}')">Save account</button></div>
       </div>`).join('')}
@@ -3090,7 +3276,7 @@ function saveSetting(tab){
   render();
 }
 
-function addBank(){ CO.banks.push({id:'b'+Date.now(),bank:'',accName:CO.name,accNo:'',swift:'',branch:''}); render(); }
+function addBank(){ CO.banks.push({id:'b'+Date.now(),bank:'',accName:CO.name,accNo:'',swift:'',branch:'',currency:CO.currency}); render(); }
 function saveFxRate(currency){
   const el=document.getElementById('fx-rate-'+currency); if(!el) return;
   const rate=parseFloat(el.value);
@@ -3141,9 +3327,18 @@ function saveBank(idx,id){
   b.accNo  =document.getElementById(`bk-no-${idx}`).value;
   b.swift  =document.getElementById(`bk-sw-${idx}`).value;
   b.branch =document.getElementById(`bk-br-${idx}`).value;
+  b.currency=document.getElementById(`bk-cur-${idx}`).value;
   saveCO(); toast('Bank account saved');
 }
 function removeBank(id){ CO.banks=CO.banks.filter(x=>x.id!==id); saveCO(); toast('Removed'); render(); }
+function pickBank(currency){
+  if(!CO.banks||!CO.banks.length) return null;
+  if(FORM.bankId){ const chosen=CO.banks.find(x=>x.id===FORM.bankId); if(chosen) return chosen; }
+  const exact=CO.banks.find(x=>(x.currency||CO.currency)===currency);
+  if(exact) return exact;
+  const base=CO.banks.find(x=>(x.currency||CO.currency)===(CO.currency||'SGD'));
+  return base||CO.banks[0];
+}
 
 /* ═══════════════════════════════════════════════
    DARK MODE
